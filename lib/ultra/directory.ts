@@ -7,6 +7,8 @@ export type UnifiedAccount = {
   key: string;
   kind: "staff" | "professor" | "student";
   id: string;
+  academiaId: string | null;
+  academiaNome: string;
   nome: string;
   email: string;
   role: RoleId;
@@ -16,6 +18,11 @@ export type UnifiedAccount = {
 
 function staffStatusLabel(s: { status?: string }): string {
   return s.status === "bloqueado" ? "bloqueado" : "ativo";
+}
+
+function nomeAcademia(db: AppDatabase, id: string | null | undefined): string {
+  if (!id) return "Plataforma";
+  return db.academias.find((a) => a.id === id)?.nome ?? id;
 }
 
 export function buildUnifiedDirectory(
@@ -29,6 +36,8 @@ export function buildUnifiedDirectory(
       key: `staff:${u.id}`,
       kind: "staff",
       id: u.id,
+      academiaId: u.academiaId ?? null,
+      academiaNome: nomeAcademia(db, u.academiaId),
       nome: u.name,
       email: u.email,
       role: u.role,
@@ -42,6 +51,8 @@ export function buildUnifiedDirectory(
       key: `prof:${p.id}`,
       kind: "professor",
       id: p.id,
+      academiaId: p.academiaId,
+      academiaNome: nomeAcademia(db, p.academiaId),
       nome: p.nome,
       email: p.email,
       role: "professor",
@@ -55,6 +66,8 @@ export function buildUnifiedDirectory(
       key: `stu:${s.id}`,
       kind: "student",
       id: s.id,
+      academiaId: s.academiaId,
+      academiaNome: nomeAcademia(db, s.academiaId),
       nome: s.nome,
       email: s.email,
       role: "aluno",

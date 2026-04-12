@@ -14,7 +14,7 @@ export function SitePublicSwitch() {
     (async () => {
       setLoading(true);
       try {
-        const res = await fetch("/api/ultra/platform", { cache: "no-store" });
+        const res = await fetch("/api/ultra-admin/platform", { cache: "no-store" });
         const j = (await res.json()) as { sitePublicoDesligado?: boolean };
         if (!cancelled && res.ok) setOff(Boolean(j.sitePublicoDesligado));
       } catch {
@@ -31,7 +31,7 @@ export function SitePublicSwitch() {
   async function apply(next: boolean) {
     setPatching(true);
     try {
-      const res = await fetch("/api/ultra/platform", {
+      const res = await fetch("/api/ultra-admin/platform", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sitePublicoDesligado: next }),

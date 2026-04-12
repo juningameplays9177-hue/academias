@@ -1,4 +1,3 @@
-import { SitePublicSwitch } from "@/components/ultra/site-public-switch";
 import { UltraDirectoryClient } from "@/components/ultra/ultra-directory-client";
 
 export default function UltraHomePage() {
@@ -11,7 +10,6 @@ export default function UltraHomePage() {
           você não pode excluir a própria sessão.
         </p>
       </div>
-      <SitePublicSwitch />
       <UltraDirectoryClient />
     </div>
   );

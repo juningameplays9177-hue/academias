@@ -1,5 +1,27 @@
 import type { RoleId } from "@/lib/rbac/roles";
 
+export type AcademiaStatus = "ativo" | "inativa";
+
+export type AcademiaRecord = {
+  id: string;
+  nome: string;
+  slug: string;
+  status: AcademiaStatus;
+  /** Caminho público opcional (ex.: /images/...). */
+  logoUrl?: string | null;
+  /**
+   * Quando true, admin/professor/aluno dessa unidade não acessam painéis nem APIs tenant.
+   * Ultra Admin continua podendo operar a unidade (ex.: religar).
+   */
+  plataformaDesligada?: boolean;
+  /** Contato comercial / recepção da unidade. */
+  email?: string | null;
+  cidade?: string | null;
+  estado?: string | null;
+  /** Link “Compartilhar” do Google Maps da unidade. */
+  googleMapsUrl?: string | null;
+};
+
 export type StudentStatus = "ativo" | "pendente" | "bloqueado" | "inativo";
 
 export type StudentPanelFlags = {
@@ -12,6 +34,8 @@ export type StudentPanelFlags = {
 
 export type StudentRecord = {
   id: string;
+  /** Tenant — isolamento total de dados. */
+  academiaId: string;
   nome: string;
   email: string;
   /** Senha própria (cadastro pelo site). Alunos sem campo usam senha demo global no login. */
@@ -39,6 +63,7 @@ export type StudentRecord = {
 
 export type PlanRecord = {
   id: string;
+  academiaId: string;
   nome: string;
   precoMensal: number;
   beneficios: string[];
@@ -47,6 +72,7 @@ export type PlanRecord = {
 
 export type ProfessorRecord = {
   id: string;
+  academiaId: string;
   nome: string;
   email: string;
   especialidade: string;
@@ -59,6 +85,7 @@ export type ProfessorRecord = {
 
 export type WorkoutTemplate = {
   id: string;
+  academiaId: string;
   nome: string;
   descricao: string;
   criadoPorProfessorId: string;
@@ -67,6 +94,7 @@ export type WorkoutTemplate = {
 
 export type ClassSlot = {
   id: string;
+  academiaId: string;
   titulo: string;
   diaSemana: string;
   horario: string;
@@ -78,6 +106,7 @@ export type NoticeTarget = "todos" | "alunos" | "professores";
 
 export type NoticeRecord = {
   id: string;
+  academiaId: string;
   titulo: string;
   corpo: string;
   destino: NoticeTarget;
@@ -87,6 +116,7 @@ export type NoticeRecord = {
 
 export type AttendanceRecord = {
   id: string;
+  academiaId: string;
   alunoId: string;
   aulaId: string;
   dataISO: string;
@@ -102,6 +132,8 @@ export type AuthUserRecord = {
   password: string;
   name: string;
   role: RoleId;
+  /** Ultra Admin da plataforma: null. Admin operacional: id da academia. */
+  academiaId: string | null;
   /** Conta staff (admin / ultra). Ausente = ativo (compatível com JSON antigo). */
   status?: AuthStaffStatus;
 };
@@ -115,6 +147,7 @@ export type PlatformSettings = {
 export type AppDatabase = {
   version: number;
   platformSettings?: PlatformSettings;
+  academias: AcademiaRecord[];
   users: AuthUserRecord[];
   students: StudentRecord[];
   plans: PlanRecord[];

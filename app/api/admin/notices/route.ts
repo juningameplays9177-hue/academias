@@ -1,23 +1,21 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth/get-server-session";
-import { assertAdminApiSession } from "@/lib/auth/require-admin-api";
-import { mutateDatabase, readDatabase } from "@/lib/db/file-store";
+import { mutateDatabase } from "@/lib/db/file-store";
 import type { NoticeRecord, NoticeTarget } from "@/lib/db/types";
+import { requireTenantAdminContext } from "@/lib/tenancy/require-tenant-api";
 
 export async function GET() {
-  const session = await getServerSession();
-  if (!assertAdminApiSession(session)) {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
-  const db = await readDatabase();
-  return NextResponse.json({ notices: db.notices });
+  const ctx = await requireTenantAdminContext();
+  if (ctx instanceof NextResponse) return ctx;
+  const { tenantId, db } = ctx;
+  return NextResponse.json({
+    notices: db.notices.filter((n) => n.academiaId === tenantId),
+  });
 }
 
 export async function POST(request: Request) {
-  const session = await getServerSession();
-  if (!assertAdminApiSession(session)) {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
+  const ctx = await requireTenantAdminContext();
+  if (ctx instanceof NextResponse) return ctx;
+  const { tenantId, session } = ctx;
   const body = (await request.json()) as {
     titulo?: string;
     corpo?: string;
@@ -28,6 +26,7 @@ export async function POST(request: Request) {
   }
   const notice: NoticeRecord = {
     id: crypto.randomUUID(),
+    academiaId: tenantId,
     titulo: body.titulo.trim(),
     corpo: body.corpo.trim(),
     destino: body.destino ?? "alunos",

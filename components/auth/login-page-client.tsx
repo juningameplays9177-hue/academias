@@ -1,6 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faBuilding } from "@fortawesome/free-solid-svg-icons";
 import { LoginForm } from "@/components/auth/login-form";
 import { RegisterForm } from "@/components/auth/register-form";
 import { cn } from "@/lib/utils/cn";
@@ -67,6 +70,16 @@ export function LoginPageClient() {
             <RegisterForm onRegistered={onRegistered} />
           </div>
         )}
+      </div>
+
+      <div className="border-t border-neutral-200 bg-neutral-50/80 px-4 py-3">
+        <Link
+          href="/select-academia"
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-neutral-200 py-2.5 text-sm font-medium text-neutral-700 transition hover:border-orange-300 hover:bg-white hover:text-orange-800"
+        >
+          <FontAwesomeIcon icon={faBuilding} className="text-orange-600" />
+          Voltar à seleção de academia
+        </Link>
       </div>
     </div>
   );

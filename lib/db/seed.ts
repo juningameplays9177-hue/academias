@@ -6,23 +6,49 @@ export const DEMO_PASSWORD = "123456";
 export function createSeedDatabase(): AppDatabase {
   const now = new Date().toISOString();
   const [k0, k1, k2] = lastNBrDateKeys(3);
+  const A = "acad_beira_rio";
   return {
     version: 1,
     platformSettings: {
       sitePublicoDesligado: false,
     },
+    academias: [
+      {
+        id: A,
+        nome: "Beira Rio Fit",
+        slug: "beira-rio-fit",
+        status: "ativo",
+        logoUrl: null,
+        plataformaDesligada: false,
+        email: "recepcao@beirariofit.com.br",
+        cidade: "Rio de Janeiro",
+        estado: "RJ",
+      },
+    ],
     users: [
+      {
+        id: "usr-ultra-1",
+        email: "ultra@academia.com",
+        password: DEMO_PASSWORD,
+        name: "Master Admin",
+        role: "ultra_admin",
+        academiaId: null,
+        status: "ativo",
+      },
       {
         id: "usr-admin-1",
         email: "admin@academia.com",
         password: DEMO_PASSWORD,
         name: "Renata Moraes",
         role: "admin",
+        academiaId: A,
+        status: "ativo",
       },
     ],
     professors: [
       {
         id: "prof-1",
+        academiaId: A,
         nome: "Marcos Antônio Vieira",
         email: "professor@academia.com",
         especialidade: "Musculação · periodização",
@@ -30,6 +56,7 @@ export function createSeedDatabase(): AppDatabase {
       },
       {
         id: "prof-2",
+        academiaId: A,
         nome: "Camila Rocha Duarte",
         email: "camila.rocha@beirariofit.com.br",
         especialidade: "Funcional · mobilidade",
@@ -39,6 +66,7 @@ export function createSeedDatabase(): AppDatabase {
     plans: [
       {
         id: "plan-basico",
+        academiaId: A,
         nome: "Off-peak",
         precoMensal: 129.9,
         beneficios: [
@@ -49,6 +77,7 @@ export function createSeedDatabase(): AppDatabase {
       },
       {
         id: "plan-inter",
+        academiaId: A,
         nome: "Full time",
         precoMensal: 189.9,
         beneficios: [
@@ -60,6 +89,7 @@ export function createSeedDatabase(): AppDatabase {
       },
       {
         id: "plan-premium",
+        academiaId: A,
         nome: "Performance",
         precoMensal: 279.9,
         beneficios: [
@@ -73,6 +103,7 @@ export function createSeedDatabase(): AppDatabase {
     students: [
       {
         id: "stu-1",
+        academiaId: A,
         nome: "João Pedro Silveira",
         email: "aluno@academia.com",
         telefone: "(11) 98122-9033",
@@ -99,6 +130,7 @@ export function createSeedDatabase(): AppDatabase {
       },
       {
         id: "stu-2",
+        academiaId: A,
         nome: "Letícia Amaral",
         email: "leticia.amaral@gmail.com",
         telefone: "(11) 99204-1188",
@@ -120,6 +152,7 @@ export function createSeedDatabase(): AppDatabase {
       },
       {
         id: "stu-3",
+        academiaId: A,
         nome: "Rafael Costa",
         email: "rafa.costa@outlook.com",
         telefone: "(11) 97002-4410",
@@ -142,6 +175,7 @@ export function createSeedDatabase(): AppDatabase {
     workouts: [
       {
         id: "wo-1",
+        academiaId: A,
         nome: "Empurrar · ombro saudável",
         descricao: "Supino reto + inclinado com pausa; face pull no final.",
         criadoPorProfessorId: "prof-1",
@@ -149,6 +183,7 @@ export function createSeedDatabase(): AppDatabase {
       },
       {
         id: "wo-2",
+        academiaId: A,
         nome: "Condicionamento 20'",
         descricao: "Circuito AMRAP leve — técnica antes de velocidade.",
         criadoPorProfessorId: "prof-2",
@@ -158,6 +193,7 @@ export function createSeedDatabase(): AppDatabase {
     classes: [
       {
         id: "cls-1",
+        academiaId: A,
         titulo: "Bike indoor",
         diaSemana: "terça",
         horario: "19:10",
@@ -166,6 +202,7 @@ export function createSeedDatabase(): AppDatabase {
       },
       {
         id: "cls-2",
+        academiaId: A,
         titulo: "Força · membros inferiores",
         diaSemana: "quinta",
         horario: "07:15",
@@ -176,6 +213,7 @@ export function createSeedDatabase(): AppDatabase {
     notices: [
       {
         id: "nt-1",
+        academiaId: A,
         titulo: "Manutenção elétrica",
         corpo: "Sábado, 6h–8h, setor de esteiras fica interditado. Demais áreas normais.",
         destino: "alunos",
@@ -186,6 +224,7 @@ export function createSeedDatabase(): AppDatabase {
     attendance: [
       {
         id: "att-1",
+        academiaId: A,
         alunoId: "stu-1",
         aulaId: "cls-1",
         dataISO: now,

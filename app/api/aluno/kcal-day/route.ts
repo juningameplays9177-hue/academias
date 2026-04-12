@@ -1,26 +1,16 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth/get-server-session";
 import { mutateDatabase, readDatabase } from "@/lib/db/file-store";
 import { brDateKey } from "@/lib/date/br-date-key";
+import { requireTenantAlunoContext } from "@/lib/tenancy/require-tenant-api";
 
 const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_ADD = 12_000;
 const MAX_DAY_TOTAL = 20_000;
 
-function findStudentIndex(
-  db: { students: { id: string; email: string }[] },
-  session: { sub: string; email: string },
-) {
-  return db.students.findIndex(
-    (s) => s.id === session.sub || s.email.toLowerCase() === session.email.toLowerCase(),
-  );
-}
-
 export async function POST(request: Request) {
-  const session = await getServerSession();
-  if (!session || session.role !== "aluno") {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
+  const ctx = await requireTenantAlunoContext();
+  if (ctx instanceof NextResponse) return ctx;
+  const { tenantId, session } = ctx;
 
   const body = (await request.json()) as {
     kcal?: number;
@@ -41,7 +31,10 @@ export async function POST(request: Request) {
       : brDateKey();
 
   const db0 = await readDatabase();
-  if (findStudentIndex(db0, session) === -1) {
+  const idx = db0.students.findIndex(
+    (s) => s.id === session.sub && s.academiaId === tenantId,
+  );
+  if (idx === -1) {
     return NextResponse.json({ error: "Aluno não encontrado" }, { status: 404 });
   }
 
@@ -50,7 +43,7 @@ export async function POST(request: Request) {
 
   await mutateDatabase((draft) => {
     const s = draft.students.find(
-      (x) => x.id === session.sub || x.email.toLowerCase() === session.email.toLowerCase(),
+      (x) => x.id === session.sub && x.academiaId === tenantId,
     );
     if (!s) return;
     if (!s.consumoKcalPorDia) s.consumoKcalPorDia = {};
@@ -73,7 +66,7 @@ export async function POST(request: Request) {
 
   const fresh = await readDatabase();
   const st = fresh.students.find(
-    (x) => x.id === session.sub || x.email.toLowerCase() === session.email.toLowerCase(),
+    (x) => x.id === session.sub && x.academiaId === tenantId,
   );
   const map = st?.consumoKcalPorDia ?? {};
 

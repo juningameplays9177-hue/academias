@@ -75,17 +75,37 @@ export function UltraDirectoryClient() {
   const [cEmail, setCEmail] = useState("");
   const [cPassword, setCPassword] = useState("");
   const [cRole, setCRole] = useState<"admin" | "ultra_admin">("admin");
+  const [cAcademiaId, setCAcademiaId] = useState("");
+  const [academyOptions, setAcademyOptions] = useState<{ id: string; nome: string }[]>(
+    [],
+  );
   const [creating, setCreating] = useState(false);
 
   const [studentDraft, setStudentDraft] = useState<Record<string, StudentStatus>>(
     {},
   );
 
+  useEffect(() => {
+    if (!createOpen) return;
+    let cancelled = false;
+    (async () => {
+      const res = await fetch("/api/academias", { cache: "no-store" });
+      const j = (await res.json()) as { academias?: { id: string; nome: string }[] };
+      if (cancelled) return;
+      const opts = j.academias ?? [];
+      setAcademyOptions(opts);
+      if (opts.length) setCAcademiaId((prev) => prev || opts[0].id);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [createOpen]);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(
-        `/api/ultra/directory?tipo=${encodeURIComponent(filter)}`,
+        `/api/ultra-admin/directory?tipo=${encodeURIComponent(filter)}`,
         { cache: "no-store" },
       );
       const body = (await res.json()) as {
@@ -121,7 +141,7 @@ export function UltraDirectoryClient() {
     id: string,
     patch: Record<string, unknown>,
   ): Promise<boolean> {
-    const res = await fetch(`/api/ultra/staff/${encodeURIComponent(id)}`, {
+    const res = await fetch(`/api/ultra-admin/staff/${encodeURIComponent(id)}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patch),
@@ -163,7 +183,7 @@ export function UltraDirectoryClient() {
   async function applyStudentStatus(row: UnifiedAccount) {
     if (row.kind !== "student") return;
     const next = studentDraft[row.id] ?? (row.statusLabel as StudentStatus);
-    const res = await fetch(`/api/ultra/student/${encodeURIComponent(row.id)}`, {
+    const res = await fetch(`/api/ultra-admin/student/${encodeURIComponent(row.id)}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: next }),
@@ -183,7 +203,7 @@ export function UltraDirectoryClient() {
 
   async function toggleProfessorBlock(row: UnifiedAccount) {
     if (row.kind !== "professor") return;
-    const res = await fetch(`/api/ultra/professor/${encodeURIComponent(row.id)}`, {
+    const res = await fetch(`/api/ultra-admin/professor/${encodeURIComponent(row.id)}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ contaBloqueada: !row.loginBloqueado }),
@@ -225,7 +245,7 @@ export function UltraDirectoryClient() {
     }
     if (resetTarget.kind === "professor") {
       const res = await fetch(
-        `/api/ultra/professor/${encodeURIComponent(resetTarget.id)}`,
+        `/api/ultra-admin/professor/${encodeURIComponent(resetTarget.id)}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -269,7 +289,7 @@ export function UltraDirectoryClient() {
       });
       return;
     }
-    const res = await fetch(`/api/ultra/staff/${encodeURIComponent(deleteTarget.id)}`, {
+    const res = await fetch(`/api/ultra-admin/staff/${encodeURIComponent(deleteTarget.id)}`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ confirmPhrase: "DELETAR" }),
@@ -292,7 +312,7 @@ export function UltraDirectoryClient() {
   async function submitCreate() {
     setCreating(true);
     try {
-      const res = await fetch("/api/ultra/staff", {
+      const res = await fetch("/api/ultra-admin/staff", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -300,6 +320,7 @@ export function UltraDirectoryClient() {
           email: cEmail,
           password: cPassword,
           role: cRole,
+          academiaId: cRole === "admin" ? cAcademiaId : undefined,
         }),
       });
       const body = (await res.json()) as { error?: string };
@@ -317,6 +338,7 @@ export function UltraDirectoryClient() {
       setCEmail("");
       setCPassword("");
       setCRole("admin");
+      setCAcademiaId(academyOptions[0]?.id ?? "");
       void load();
     } finally {
       setCreating(false);
@@ -354,6 +376,7 @@ export function UltraDirectoryClient() {
             <tr>
               <th className="px-4 py-3 font-medium">Nome</th>
               <th className="px-4 py-3 font-medium">E-mail</th>
+              <th className="px-4 py-3 font-medium">Academia</th>
               <th className="px-4 py-3 font-medium">Papel</th>
               <th className="px-4 py-3 font-medium">Situação</th>
               <th className="px-4 py-3 font-medium">Ações</th>
@@ -362,13 +385,13 @@ export function UltraDirectoryClient() {
           <tbody className="divide-y divide-white/5">
             {loading ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-neutral-500">
+                <td colSpan={6} className="px-4 py-8 text-center text-neutral-500">
                   Carregando diretório…
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-neutral-500">
+                <td colSpan={6} className="px-4 py-8 text-center text-neutral-500">
                   Nenhuma conta neste filtro.
                 </td>
               </tr>
@@ -377,6 +400,9 @@ export function UltraDirectoryClient() {
                 <tr key={row.key} className="text-neutral-200">
                   <td className="px-4 py-3 font-medium text-white">{row.nome}</td>
                   <td className="px-4 py-3 text-neutral-400">{row.email}</td>
+                  <td className="px-4 py-3 text-xs text-neutral-500">
+                    {row.academiaNome}
+                  </td>
                   <td className="px-4 py-3">
                     <span
                       className={cn(
@@ -559,6 +585,22 @@ export function UltraDirectoryClient() {
               <option value="ultra_admin">Ultra Admin</option>
             </select>
           </label>
+          {cRole === "admin" ? (
+            <label className="block text-neutral-300">
+              Academia
+              <select
+                className="mt-1 w-full rounded-lg border border-white/15 bg-black px-3 py-2 text-white"
+                value={cAcademiaId}
+                onChange={(e) => setCAcademiaId(e.target.value)}
+              >
+                {academyOptions.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.nome}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
               Cancelar

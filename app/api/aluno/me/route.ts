@@ -1,32 +1,36 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth/get-server-session";
 import { readDatabase } from "@/lib/db/file-store";
 import { studentWithoutPassword } from "@/lib/db/student-public";
+import { requireTenantAlunoContext } from "@/lib/tenancy/require-tenant-api";
 
 export async function GET() {
-  const session = await getServerSession();
-  if (!session || session.role !== "aluno") {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
+  const ctx = await requireTenantAlunoContext();
+  if (ctx instanceof NextResponse) return ctx;
+  const { tenantId, session, db } = ctx;
 
-  const db = await readDatabase();
   const student = db.students.find(
-    (s) => s.id === session.sub || s.email.toLowerCase() === session.email.toLowerCase(),
+    (s) => s.id === session.sub && s.academiaId === tenantId,
   );
   if (!student) {
     return NextResponse.json({ error: "Perfil não encontrado" }, { status: 404 });
   }
 
-  const plan = db.plans.find((p) => p.id === student.planoId);
+  const plan = db.plans.find(
+    (p) => p.id === student.planoId && p.academiaId === tenantId,
+  );
   const professor = student.professorId
-    ? db.professors.find((p) => p.id === student.professorId)
+    ? db.professors.find(
+        (p) => p.id === student.professorId && p.academiaId === tenantId,
+      )
     : null;
 
   const notices = db.notices.filter(
-    (n) => n.destino === "todos" || n.destino === "alunos",
+    (n) =>
+      n.academiaId === tenantId &&
+      (n.destino === "todos" || n.destino === "alunos"),
   );
 
-  const classes = db.classes;
+  const classes = db.classes.filter((c) => c.academiaId === tenantId);
 
   return NextResponse.json({
     student: studentWithoutPassword(student),

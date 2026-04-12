@@ -1,33 +1,32 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth/get-server-session";
 import { mutateDatabase, readDatabase } from "@/lib/db/file-store";
 import type { WorkoutTemplate } from "@/lib/db/types";
+import { requireTenantProfessorContext } from "@/lib/tenancy/require-tenant-api";
 
 export async function GET() {
-  const session = await getServerSession();
-  if (!session || session.role !== "professor") {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
-  const db = await readDatabase();
+  const ctx = await requireTenantProfessorContext();
+  if (ctx instanceof NextResponse) return ctx;
+  const { tenantId, session, db } = ctx;
   const workouts = db.workouts.filter(
-    (w) => w.criadoPorProfessorId === session.sub,
+    (w) =>
+      w.academiaId === tenantId && w.criadoPorProfessorId === session.sub,
   );
-  return NextResponse.json({ workouts, students: db.students });
+  const students = db.students.filter((s) => s.academiaId === tenantId);
+  return NextResponse.json({ workouts, students });
 }
 
 export async function POST(request: Request) {
-  const session = await getServerSession();
-  if (!session || session.role !== "professor") {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
+  const ctx = await requireTenantProfessorContext();
+  if (ctx instanceof NextResponse) return ctx;
+  const { tenantId, session } = ctx;
   const body = (await request.json()) as Partial<WorkoutTemplate> & {
     alunoId?: string;
-    /** substitui lista de treinos do aluno quando informado */
     replaceStudentWorkouts?: boolean;
   };
 
   const workout: WorkoutTemplate = {
     id: crypto.randomUUID(),
+    academiaId: tenantId,
     nome: body.nome?.trim() || "Novo treino",
     descricao: body.descricao?.trim() || "",
     foco: body.foco?.trim() || "Geral",
@@ -37,8 +36,13 @@ export async function POST(request: Request) {
   await mutateDatabase((db) => {
     db.workouts.push(workout);
     if (body.alunoId && body.replaceStudentWorkouts) {
-      const st = db.students.find((s) => s.id === body.alunoId);
-      if (st && st.professorId === session.sub) {
+      const st = db.students.find(
+        (s) =>
+          s.id === body.alunoId &&
+          s.academiaId === tenantId &&
+          s.professorId === session.sub,
+      );
+      if (st) {
         st.treinos = [workout.nome];
       }
     }

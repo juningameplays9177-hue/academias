@@ -1,21 +1,18 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth/get-server-session";
-import { assertAdminApiSession } from "@/lib/auth/require-admin-api";
-import { mutateDatabase, readDatabase } from "@/lib/db/file-store";
+import { mutateDatabase } from "@/lib/db/file-store";
 import type { PlanRecord } from "@/lib/db/types";
+import { requireTenantAdminContext } from "@/lib/tenancy/require-tenant-api";
 
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: Request, ctx: Ctx) {
-  const session = await getServerSession();
-  if (!assertAdminApiSession(session)) {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
+  const ctxReq = await requireTenantAdminContext();
+  if (ctxReq instanceof NextResponse) return ctxReq;
+  const { tenantId, db } = ctxReq;
   const { id } = await ctx.params;
   const patch = (await request.json()) as Partial<PlanRecord>;
 
-  const db = await readDatabase();
-  const idx = db.plans.findIndex((p) => p.id === id);
+  const idx = db.plans.findIndex((p) => p.id === id && p.academiaId === tenantId);
   if (idx === -1) {
     return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   }
@@ -23,6 +20,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
   const updated: PlanRecord = {
     ...current,
     ...patch,
+    academiaId: tenantId,
     nome: patch.nome?.trim() ?? current.nome,
     precoMensal:
       patch.precoMensal !== undefined
@@ -32,7 +30,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
   };
 
   await mutateDatabase((draft) => {
-    const i = draft.plans.findIndex((p) => p.id === id);
+    const i = draft.plans.findIndex((p) => p.id === id && p.academiaId === tenantId);
     if (i !== -1) draft.plans[i] = updated;
   });
 
@@ -40,13 +38,13 @@ export async function PATCH(request: Request, ctx: Ctx) {
 }
 
 export async function DELETE(_request: Request, ctx: Ctx) {
-  const session = await getServerSession();
-  if (!assertAdminApiSession(session)) {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
+  const ctxReq = await requireTenantAdminContext();
+  if (ctxReq instanceof NextResponse) return ctxReq;
+  const { tenantId, db } = ctxReq;
   const { id } = await ctx.params;
-  const db = await readDatabase();
-  const inUse = db.students.some((s) => s.planoId === id);
+  const inUse = db.students.some(
+    (s) => s.academiaId === tenantId && s.planoId === id,
+  );
   if (inUse) {
     return NextResponse.json(
       { error: "Plano vinculado a alunos — altere os vínculos antes." },
@@ -54,7 +52,9 @@ export async function DELETE(_request: Request, ctx: Ctx) {
     );
   }
   await mutateDatabase((draft) => {
-    draft.plans = draft.plans.filter((p) => p.id !== id);
+    draft.plans = draft.plans.filter(
+      (p) => !(p.id === id && p.academiaId === tenantId),
+    );
   });
   return NextResponse.json({ ok: true });
 }

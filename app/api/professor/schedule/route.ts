@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth/get-server-session";
 import { readDatabase } from "@/lib/db/file-store";
+import { requireTenantProfessorContext } from "@/lib/tenancy/require-tenant-api";
 
 export async function GET() {
-  const session = await getServerSession();
-  if (!session || session.role !== "professor") {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
-  const db = await readDatabase();
-  const classes = db.classes.filter((c) => c.professorId === session.sub);
+  const ctx = await requireTenantProfessorContext();
+  if (ctx instanceof NextResponse) return ctx;
+  const { tenantId, session, db } = ctx;
+  const classes = db.classes.filter(
+    (c) => c.academiaId === tenantId && c.professorId === session.sub,
+  );
   return NextResponse.json({ classes });
 }

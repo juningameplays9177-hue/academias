@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import {
   faBars,
   faRightFromBracket,
+  faRightLeft,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "@/hooks/useAuth";
@@ -40,10 +41,39 @@ export function DashboardShell({
   children,
 }: Props) {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const router = useRouter();
+  const { user, tenant, logout, canSwitchTenant, isUltraAdmin, refresh } = useAuth();
   const [openMenu, setOpenMenu] = useState(false);
+  const [switching, setSwitching] = useState(false);
+
+  async function switchAcademia() {
+    setSwitching(true);
+    try {
+      const res = await fetch("/api/auth/clear-tenant", { method: "POST" });
+      if (!res.ok) return;
+      await refresh();
+      router.push("/select-academia");
+      router.refresh();
+    } finally {
+      setSwitching(false);
+    }
+  }
   const roleTag = subtitle ?? "Painel";
   const allNav = [...prependNav, ...nav];
+
+  const brandName = useMemo(
+    () => tenant?.nome ?? (isUltraAdmin ? "Plataforma" : "Beira Rio Fit"),
+    [tenant?.nome, isUltraAdmin],
+  );
+
+  const headerTagline = useMemo(() => {
+    if (tenant?.slug) return `${title} · @${tenant.slug}`;
+    return title;
+  }, [title, tenant?.slug]);
+
+  useEffect(() => {
+    document.title = `${brandName} · ${roleTag}`;
+  }, [brandName, roleTag]);
 
   return (
     <div className="dark min-h-screen bg-black text-white">
@@ -52,18 +82,21 @@ export function DashboardShell({
           <span className="rounded-full bg-orange-500 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-black">
             {roleTag}
           </span>
-          Sistema interno Beira Rio Fit — mesmo padrão visual do site público.
+          <span className="text-neutral-200">
+            Painel interno · <span className="font-medium text-white">{brandName}</span>
+            {tenant ? " — dados isolados desta unidade." : " — controle da rede."}
+          </span>
         </p>
       </div>
 
       <header className="sticky top-0 z-50 border-b border-white/10 bg-black/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <Link href={basePath} className="flex flex-col leading-tight">
-            <span className="text-lg font-semibold tracking-tight text-white">
-              Beira Rio Fit
+            <span className="max-w-[220px] truncate text-lg font-semibold tracking-tight text-white sm:max-w-[280px]">
+              {brandName}
             </span>
-            <span className="text-[11px] text-neutral-400">
-              {title} · Recreio
+            <span className="max-w-[220px] truncate text-[11px] text-neutral-400 sm:max-w-[320px]">
+              {headerTagline}
             </span>
           </Link>
 
@@ -90,8 +123,27 @@ export function DashboardShell({
                 </Link>
               );
             })}
+            {isUltraAdmin && tenant ? (
+              <Link
+                href="/ultra-admin"
+                className="text-xs text-violet-300 transition hover:text-violet-100"
+              >
+                Trocar unidade
+              </Link>
+            ) : null}
+            {canSwitchTenant ? (
+              <button
+                type="button"
+                disabled={switching}
+                onClick={() => void switchAcademia()}
+                className="flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1 text-xs text-neutral-200 transition hover:border-orange-500/50 hover:text-white"
+              >
+                <FontAwesomeIcon icon={faRightLeft} className="text-[10px]" />
+                Trocar academia
+              </button>
+            ) : null}
             <Link
-              href="/"
+              href="/site"
               className="transition hover:text-white"
             >
               Site
@@ -146,12 +198,35 @@ export function DashboardShell({
                 );
               })}
               <Link
-                href="/"
+                href="/site"
                 className="rounded-lg px-3 py-2.5 text-neutral-200 hover:bg-white/5"
                 onClick={() => setOpenMenu(false)}
               >
                 Ver site público
               </Link>
+              {canSwitchTenant ? (
+                <button
+                  type="button"
+                  disabled={switching}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-neutral-200 hover:bg-white/5"
+                  onClick={() => {
+                    void switchAcademia();
+                    setOpenMenu(false);
+                  }}
+                >
+                  <FontAwesomeIcon icon={faRightLeft} className="w-4" />
+                  Trocar academia
+                </button>
+              ) : null}
+              {isUltraAdmin && tenant ? (
+                <Link
+                  href="/ultra-admin"
+                  className="rounded-lg px-3 py-2.5 text-sm text-violet-300 hover:bg-white/5"
+                  onClick={() => setOpenMenu(false)}
+                >
+                  Trocar unidade (Ultra)
+                </Link>
+              ) : null}
               <Button
                 type="button"
                 variant="outline"
@@ -166,10 +241,17 @@ export function DashboardShell({
         ) : null}
       </header>
 
-      <div className="mx-auto hidden max-w-6xl items-center justify-end gap-3 border-b border-white/5 px-4 py-2 text-xs text-neutral-400 lg:flex">
+      <div className="mx-auto hidden max-w-6xl flex-wrap items-center justify-end gap-3 border-b border-white/5 px-4 py-2 text-xs text-neutral-400 lg:flex">
         <span>
           Logado como <span className="text-neutral-200">{user?.name ?? "—"}</span>
         </span>
+        {tenant ? (
+          <span className="text-neutral-500">
+            ·{" "}
+            <span className="text-orange-200/90">{tenant.nome}</span>
+            <span className="text-neutral-600"> ({tenant.slug})</span>
+          </span>
+        ) : null}
       </div>
 
       <main className="min-h-[calc(100vh-8rem)] bg-black px-4 py-8 text-neutral-200 lg:px-6">

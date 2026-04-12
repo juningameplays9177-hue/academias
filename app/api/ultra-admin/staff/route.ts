@@ -16,6 +16,7 @@ export async function POST(request: Request) {
     email?: string;
     password?: string;
     role?: RoleId;
+    academiaId?: string;
   };
 
   const name = body.name?.trim() ?? "";
@@ -46,6 +47,19 @@ export async function POST(request: Request) {
   }
 
   const db = await readDatabase();
+
+  let academiaId: string | null = null;
+  if (role === "admin") {
+    const aid = body.academiaId?.trim() ?? "";
+    if (!aid || !db.academias.some((a) => a.id === aid && a.status === "ativo")) {
+      return NextResponse.json(
+        { error: "Informe uma academiaId válida para admin operacional." },
+        { status: 400 },
+      );
+    }
+    academiaId = aid;
+  }
+
   if (
     db.users.some((u) => u.email.toLowerCase() === email) ||
     db.professors.some((p) => p.email.toLowerCase() === email) ||
@@ -60,6 +74,7 @@ export async function POST(request: Request) {
     password,
     name,
     role,
+    academiaId,
     status: "ativo",
   };
 

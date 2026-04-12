@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth/get-server-session";
 import { mutateDatabase, readDatabase } from "@/lib/db/file-store";
+import { requireTenantProfessorContext } from "@/lib/tenancy/require-tenant-api";
 
 export async function POST(request: Request) {
-  const session = await getServerSession();
-  if (!session || session.role !== "professor") {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
+  const ctx = await requireTenantProfessorContext();
+  if (ctx instanceof NextResponse) return ctx;
+  const { tenantId, session } = ctx;
   const body = (await request.json()) as {
     alunoId?: string;
     treinos?: string[];
@@ -16,13 +15,23 @@ export async function POST(request: Request) {
   }
 
   const db = await readDatabase();
-  const st = db.students.find((s) => s.id === body.alunoId);
-  if (!st || st.professorId !== session.sub) {
+  const st = db.students.find(
+    (s) =>
+      s.id === body.alunoId &&
+      s.academiaId === tenantId &&
+      s.professorId === session.sub,
+  );
+  if (!st) {
     return NextResponse.json({ error: "Aluno não encontrado" }, { status: 404 });
   }
 
   await mutateDatabase((draft) => {
-    const s = draft.students.find((x) => x.id === body.alunoId);
+    const s = draft.students.find(
+      (x) =>
+        x.id === body.alunoId &&
+        x.academiaId === tenantId &&
+        x.professorId === session.sub,
+    );
     if (s) s.treinos = body.treinos!;
   });
 

@@ -3,12 +3,29 @@ import { isRoleId } from "@/lib/rbac/roles";
 
 export const SESSION_COOKIE_NAME = "beirariofit_session";
 
+/** Membro de uma academia após login (permite troca de tenant sem nova senha). */
+export type TenantMembership = {
+  academiaId: string;
+  principalId: string;
+  role: RoleId;
+  academiaNome: string;
+  slug: string;
+  /** Nome do perfil na unidade (aluno/prof/admin). */
+  displayName?: string;
+};
+
 export type SessionPayload = {
   sub: string;
   email: string;
   name: string;
   role: RoleId;
   exp: number;
+  /** True até o usuário escolher a academia (multi-tenant). */
+  needsTenantSelection?: boolean;
+  /** Unidades onde o mesmo e-mail tem acesso (SaaS). */
+  memberships?: TenantMembership[];
+  /** Versão do payload para migrações leves. */
+  v?: number;
 };
 
 function utf8ToBase64(str: string): string {
@@ -37,7 +54,7 @@ export function decodeSessionPayload(token: string): SessionPayload | null {
     if (!data?.sub || !data?.role || !data?.exp) return null;
     if (!isRoleId(String(data.role))) return null;
     if (Date.now() > data.exp) return null;
-    return data;
+    return { ...data, v: data.v ?? 2 };
   } catch {
     return null;
   }
@@ -49,6 +66,8 @@ export function createSessionPayload(input: {
   name: string;
   role: RoleId;
   ttlMs?: number;
+  needsTenantSelection?: boolean;
+  memberships?: TenantMembership[];
 }): SessionPayload {
   const ttlMs = input.ttlMs ?? 1000 * 60 * 60 * 24 * 7;
   return {
@@ -57,5 +76,8 @@ export function createSessionPayload(input: {
     name: input.name,
     role: input.role,
     exp: Date.now() + ttlMs,
+    v: 2,
+    needsTenantSelection: input.needsTenantSelection,
+    memberships: input.memberships,
   };
 }

@@ -104,7 +104,7 @@ export function MarketingPage() {
 
       <header className="sticky top-0 z-50 border-b border-white/10 bg-black/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-          <Link href="/" className="flex flex-col leading-tight">
+          <Link href="/select-academia" className="flex flex-col leading-tight">
             <span className="text-lg font-semibold tracking-tight">
               Beira Rio Fit
             </span>

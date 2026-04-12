@@ -29,7 +29,7 @@ export function AdminLayoutClient({
   const prependNav = useMemo(
     () =>
       user?.role === "ultra_admin"
-        ? [{ href: "/ultra", label: "Ultra", icon: faShieldHalved }]
+        ? [{ href: "/ultra-admin", label: "Ultra", icon: faShieldHalved }]
         : [],
     [user?.role],
   );

@@ -1,21 +1,18 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth/get-server-session";
-import { assertAdminApiSession } from "@/lib/auth/require-admin-api";
-import { mutateDatabase, readDatabase } from "@/lib/db/file-store";
+import { mutateDatabase } from "@/lib/db/file-store";
 import type { ProfessorRecord } from "@/lib/db/types";
+import { requireTenantAdminContext } from "@/lib/tenancy/require-tenant-api";
 
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: Request, ctx: Ctx) {
-  const session = await getServerSession();
-  if (!assertAdminApiSession(session)) {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
+  const ctxReq = await requireTenantAdminContext();
+  if (ctxReq instanceof NextResponse) return ctxReq;
+  const { tenantId, db } = ctxReq;
   const { id } = await ctx.params;
   const patch = (await request.json()) as Partial<ProfessorRecord>;
 
-  const db = await readDatabase();
-  const idx = db.professors.findIndex((p) => p.id === id);
+  const idx = db.professors.findIndex((p) => p.id === id && p.academiaId === tenantId);
   if (idx === -1) {
     return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   }
@@ -24,8 +21,14 @@ export async function PATCH(request: Request, ctx: Ctx) {
   if (nextEmail !== current.email.toLowerCase()) {
     const clash =
       db.professors.some(
-        (p) => p.id !== id && p.email.toLowerCase() === nextEmail,
-      ) || db.students.some((s) => s.email.toLowerCase() === nextEmail);
+        (p) =>
+          p.id !== id &&
+          p.academiaId === tenantId &&
+          p.email.toLowerCase() === nextEmail,
+      ) ||
+      db.students.some(
+        (s) => s.academiaId === tenantId && s.email.toLowerCase() === nextEmail,
+      );
     if (clash) {
       return NextResponse.json({ error: "E-mail já usado" }, { status: 409 });
     }
@@ -33,24 +36,25 @@ export async function PATCH(request: Request, ctx: Ctx) {
   const updated: ProfessorRecord = {
     ...current,
     ...patch,
+    academiaId: tenantId,
     email: nextEmail,
     nome: patch.nome?.trim() ?? current.nome,
   };
   await mutateDatabase((d) => {
-    const i = d.professors.findIndex((p) => p.id === id);
+    const i = d.professors.findIndex((p) => p.id === id && p.academiaId === tenantId);
     if (i !== -1) d.professors[i] = updated;
   });
   return NextResponse.json({ professor: updated });
 }
 
 export async function DELETE(_request: Request, ctx: Ctx) {
-  const session = await getServerSession();
-  if (!assertAdminApiSession(session)) {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
+  const ctxReq = await requireTenantAdminContext();
+  if (ctxReq instanceof NextResponse) return ctxReq;
+  const { tenantId, db } = ctxReq;
   const { id } = await ctx.params;
-  const db = await readDatabase();
-  const inUse = db.students.some((s) => s.professorId === id);
+  const inUse = db.students.some(
+    (s) => s.academiaId === tenantId && s.professorId === id,
+  );
   if (inUse) {
     return NextResponse.json(
       { error: "Professor com alunos vinculados." },
@@ -58,7 +62,9 @@ export async function DELETE(_request: Request, ctx: Ctx) {
     );
   }
   await mutateDatabase((d) => {
-    d.professors = d.professors.filter((p) => p.id !== id);
+    d.professors = d.professors.filter(
+      (p) => !(p.id === id && p.academiaId === tenantId),
+    );
   });
   return NextResponse.json({ ok: true });
 }

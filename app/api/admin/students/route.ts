@@ -1,21 +1,18 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth/get-server-session";
-import { assertAdminApiSession } from "@/lib/auth/require-admin-api";
-import { mutateDatabase, readDatabase } from "@/lib/db/file-store";
+import { mutateDatabase } from "@/lib/db/file-store";
 import { studentWithoutPassword } from "@/lib/db/student-public";
 import type { StudentRecord, StudentStatus } from "@/lib/db/types";
+import { requireTenantAdminContext } from "@/lib/tenancy/require-tenant-api";
 
 export async function GET(request: Request) {
-  const session = await getServerSession();
-  if (!assertAdminApiSession(session)) {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
+  const ctx = await requireTenantAdminContext();
+  if (ctx instanceof NextResponse) return ctx;
+  const { tenantId, db } = ctx;
   const { searchParams } = new URL(request.url);
   const q = (searchParams.get("q") ?? "").toLowerCase();
   const status = searchParams.get("status") as StudentStatus | "all" | null;
 
-  const db = await readDatabase();
-  let list = db.students;
+  let list = db.students.filter((s) => s.academiaId === tenantId);
   if (q) {
     list = list.filter(
       (s) =>
@@ -26,35 +23,40 @@ export async function GET(request: Request) {
   if (status && status !== "all") {
     list = list.filter((s) => s.status === status);
   }
+  const plans = db.plans.filter((p) => p.academiaId === tenantId);
+  const professors = db.professors.filter((p) => p.academiaId === tenantId);
   return NextResponse.json({
     students: list.map(studentWithoutPassword),
-    plans: db.plans,
-    professors: db.professors,
+    plans,
+    professors,
   });
 }
 
 export async function POST(request: Request) {
-  const session = await getServerSession();
-  if (!assertAdminApiSession(session)) {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
+  const ctx = await requireTenantAdminContext();
+  if (ctx instanceof NextResponse) return ctx;
+  const { tenantId, db } = ctx;
   const body = (await request.json()) as Partial<StudentRecord>;
   const email = (body.email ?? "").trim().toLowerCase();
   if (!email) {
     return NextResponse.json({ error: "E-mail obrigatório" }, { status: 400 });
   }
 
-  const dbBefore = await readDatabase();
-  if (dbBefore.students.some((s) => s.email.toLowerCase() === email)) {
-    return NextResponse.json({ error: "E-mail já cadastrado" }, { status: 409 });
+  if (
+    db.students.some(
+      (s) => s.email.toLowerCase() === email && s.academiaId === tenantId,
+    )
+  ) {
+    return NextResponse.json({ error: "E-mail já cadastrado nesta academia." }, { status: 409 });
   }
 
   const novo: StudentRecord = {
     id: crypto.randomUUID(),
+    academiaId: tenantId,
     nome: body.nome?.trim() || "Novo aluno",
     email,
     telefone: body.telefone?.trim() || "",
-    planoId: body.planoId || "plan-basico",
+    planoId: body.planoId || db.plans.find((p) => p.academiaId === tenantId)?.id || "",
     status: body.status ?? "pendente",
     professorId: body.professorId ?? null,
     permissoes: {
@@ -70,8 +72,12 @@ export async function POST(request: Request) {
     criadoEm: new Date().toISOString(),
   };
 
-  await mutateDatabase((db) => {
-    db.students.push(novo);
+  if (!novo.planoId) {
+    return NextResponse.json({ error: "Nenhum plano configurado para esta academia." }, { status: 400 });
+  }
+
+  await mutateDatabase((draft) => {
+    draft.students.push(novo);
   });
 
   return NextResponse.json({ student: studentWithoutPassword(novo) });

@@ -61,13 +61,33 @@ export async function POST(request: Request) {
   }
 
   const db = await readDatabase();
+  const defaultAcademiaId =
+    db.academias.find(
+      (a) => a.status === "ativo" && !a.plataformaDesligada,
+    )?.id ?? null;
+  if (!defaultAcademiaId) {
+    return NextResponse.json(
+      {
+        error:
+          "Cadastro temporariamente indisponível: todas as unidades estão suspensas ou inativas.",
+      },
+      { status: 503 },
+    );
+  }
+
   if (
     db.users.some((u) => u.email.toLowerCase() === email) ||
-    db.professors.some((p) => p.email.toLowerCase() === email) ||
-    db.students.some((s) => s.email.toLowerCase() === email)
+    db.professors.some(
+      (p) =>
+        p.email.toLowerCase() === email && p.academiaId === defaultAcademiaId,
+    ) ||
+    db.students.some(
+      (s) =>
+        s.email.toLowerCase() === email && s.academiaId === defaultAcademiaId,
+    )
   ) {
     return NextResponse.json(
-      { error: "Este e-mail já está cadastrado." },
+      { error: "Este e-mail já está cadastrado nesta unidade." },
       { status: 409 },
     );
   }
@@ -85,14 +105,18 @@ export async function POST(request: Request) {
         ? `(${celular.slice(0, 2)}) ${celular.slice(2, 6)}-${celular.slice(6)}`
         : celular;
 
+  const planoPadrao =
+    db.plans.find((p) => p.academiaId === defaultAcademiaId)?.id ?? "";
+
   const novo: StudentRecord = {
     id: crypto.randomUUID(),
+    academiaId: defaultAcademiaId,
     nome,
     email,
     password: senha,
     cpf: cpfNorm,
     telefone: displayPhone,
-    planoId: "plan-basico",
+    planoId: planoPadrao || "plan-basico",
     status: "pendente",
     professorId: null,
     permissoes: {

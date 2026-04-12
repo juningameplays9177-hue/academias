@@ -1,26 +1,31 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth/get-server-session";
 import { mutateDatabase, readDatabase } from "@/lib/db/file-store";
 import type { AttendanceRecord } from "@/lib/db/types";
+import { requireTenantProfessorContext } from "@/lib/tenancy/require-tenant-api";
 
 export async function GET() {
-  const session = await getServerSession();
-  if (!session || session.role !== "professor") {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
-  const db = await readDatabase();
+  const ctx = await requireTenantProfessorContext();
+  if (ctx instanceof NextResponse) return ctx;
+  const { tenantId, session, db } = ctx;
   const myStudentIds = new Set(
-    db.students.filter((s) => s.professorId === session.sub).map((s) => s.id),
+    db.students
+      .filter(
+        (s) =>
+          s.academiaId === tenantId && s.professorId === session.sub,
+      )
+      .map((s) => s.id),
   );
-  const rows = db.attendance.filter((a) => myStudentIds.has(a.alunoId));
-  return NextResponse.json({ attendance: rows, students: db.students });
+  const rows = db.attendance.filter(
+    (a) => a.academiaId === tenantId && myStudentIds.has(a.alunoId),
+  );
+  const students = db.students.filter((s) => s.academiaId === tenantId);
+  return NextResponse.json({ attendance: rows, students });
 }
 
 export async function POST(request: Request) {
-  const session = await getServerSession();
-  if (!session || session.role !== "professor") {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
+  const ctx = await requireTenantProfessorContext();
+  if (ctx instanceof NextResponse) return ctx;
+  const { tenantId, session } = ctx;
   const body = (await request.json()) as {
     alunoId?: string;
     aulaId?: string;
@@ -31,13 +36,26 @@ export async function POST(request: Request) {
   }
 
   const db = await readDatabase();
-  const st = db.students.find((s) => s.id === body.alunoId);
-  if (!st || st.professorId !== session.sub) {
+  const st = db.students.find(
+    (s) =>
+      s.id === body.alunoId &&
+      s.academiaId === tenantId &&
+      s.professorId === session.sub,
+  );
+  if (!st) {
     return NextResponse.json({ error: "Aluno inválido" }, { status: 400 });
+  }
+
+  const cls = db.classes.find(
+    (c) => c.id === body.aulaId && c.academiaId === tenantId,
+  );
+  if (!cls) {
+    return NextResponse.json({ error: "Aula inválida" }, { status: 400 });
   }
 
   const record: AttendanceRecord = {
     id: crypto.randomUUID(),
+    academiaId: tenantId,
     alunoId: body.alunoId,
     aulaId: body.aulaId,
     dataISO: new Date().toISOString(),

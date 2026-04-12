@@ -3,12 +3,15 @@ import {
   SESSION_COOKIE_NAME,
   decodeSessionPayload,
 } from "@/lib/auth/session-cookie";
+import { TENANT_COOKIE_NAME } from "@/lib/auth/tenant-cookie";
+import { homePathForRole } from "@/lib/rbac/home-path";
 import { canAccessPath, canUseAdminApi } from "@/lib/rbac/route-guards";
 import type { RoleId } from "@/lib/rbac/roles";
 
 const PUBLIC_PATHS = new Set([
-  "/",
   "/login",
+  "/select-academia",
+  "/site",
   "/api/auth/login",
   "/api/contact",
 ]);
@@ -27,7 +30,19 @@ function isPublicPath(pathname: string): boolean {
   if (pathname.startsWith("/favicon")) return true;
   if (pathname.startsWith("/images")) return true;
   if (pathname.startsWith("/api/auth/")) return true;
+  if (pathname.startsWith("/api/public/")) return true;
   return false;
+}
+
+function pathNeedsTenantCookie(pathname: string): boolean {
+  return (
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/api/admin") ||
+    pathname.startsWith("/professor") ||
+    pathname.startsWith("/api/professor") ||
+    pathname.startsWith("/aluno") ||
+    pathname.startsWith("/api/aluno")
+  );
 }
 
 async function fetchSitePublicOff(request: NextRequest): Promise<boolean> {
@@ -42,18 +57,18 @@ async function fetchSitePublicOff(request: NextRequest): Promise<boolean> {
   }
 }
 
-function homeForRole(role: RoleId): string {
-  switch (role) {
-    case "ultra_admin":
-      return "/ultra";
-    case "admin":
-      return "/admin";
-    case "professor":
-      return "/professor";
-    case "aluno":
-      return "/aluno";
-    default:
-      return "/";
+async function fetchTenantPlataformaOff(request: NextRequest): Promise<boolean> {
+  try {
+    const url = new URL("/api/site/tenant-plataforma-off", request.nextUrl.origin);
+    const res = await fetch(url, {
+      headers: { cookie: request.headers.get("cookie") ?? "" },
+      cache: "no-store",
+    });
+    if (!res.ok) return false;
+    const j = (await res.json()) as { plataformaDesligada?: boolean };
+    return Boolean(j.plataformaDesligada);
+  } catch {
+    return false;
   }
 }
 
@@ -61,9 +76,11 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const session = token ? decodeSessionPayload(token) : null;
+  const tenantId = request.cookies.get(TENANT_COOKIE_NAME)?.value ?? null;
 
   if (isStaticPath(pathname)) return NextResponse.next();
   if (pathname === "/api/site/public-status") return NextResponse.next();
+  if (pathname === "/api/site/tenant-plataforma-off") return NextResponse.next();
   if (pathname === "/manutencao") return NextResponse.next();
 
   const publicOff = await fetchSitePublicOff(request);
@@ -71,11 +88,15 @@ export async function middleware(request: NextRequest) {
 
   if (publicOff && !isUltra) {
     if (pathname === "/login") return NextResponse.next();
+    if (pathname === "/manutencao-unidade") return NextResponse.next();
     if (
       pathname.startsWith("/api/auth/login") ||
       pathname.startsWith("/api/auth/register") ||
       pathname === "/api/auth/logout"
     ) {
+      return NextResponse.next();
+    }
+    if (pathname.startsWith("/api/public/")) {
       return NextResponse.next();
     }
     if (pathname.startsWith("/api/")) {
@@ -89,8 +110,19 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  if (pathname === "/manutencao-unidade") {
+    return NextResponse.next();
+  }
+
+  if (!publicOff && pathname === "/") {
+    return NextResponse.redirect(new URL("/select-academia", request.url));
+  }
+
+  if (pathname === "/login" && session?.needsTenantSelection) {
+    return NextResponse.redirect(new URL("/select-academia", request.url));
+  }
   if (pathname === "/login" && session) {
-    return NextResponse.redirect(new URL(homeForRole(session.role), request.url));
+    return NextResponse.redirect(new URL(homePathForRole(session.role), request.url));
   }
 
   if (isPublicPath(pathname)) {
@@ -98,26 +130,45 @@ export async function middleware(request: NextRequest) {
   }
 
   if (pathname.startsWith("/api/")) {
-    if (pathname.startsWith("/api/ultra") && session?.role !== "ultra_admin") {
+    if (
+      pathname.startsWith("/api/ultra-admin") &&
+      session?.role !== "ultra_admin"
+    ) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+    if (pathname.startsWith("/api/academias") && session?.role !== "ultra_admin") {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
     if (pathname.startsWith("/api/admin") && !canUseAdminApi(session?.role as RoleId)) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
-    if (
-      pathname.startsWith("/api/professor") &&
-      session?.role !== "professor" &&
-      session?.role !== "ultra_admin"
-    ) {
+    if (pathname.startsWith("/api/professor") && session?.role !== "professor") {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
-    if (
-      pathname.startsWith("/api/aluno") &&
-      session?.role !== "aluno" &&
-      session?.role !== "ultra_admin"
-    ) {
+    if (pathname.startsWith("/api/aluno") && session?.role !== "aluno") {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
+
+    const needsTenantPlataformaCheck =
+      session &&
+      session.role !== "ultra_admin" &&
+      tenantId &&
+      (pathname.startsWith("/api/admin") ||
+        pathname.startsWith("/api/professor") ||
+        pathname.startsWith("/api/aluno"));
+    if (needsTenantPlataformaCheck) {
+      const tenantOff = await fetchTenantPlataformaOff(request);
+      if (tenantOff) {
+        return NextResponse.json(
+          {
+            error:
+              "Esta unidade está temporariamente suspensa pelo Ultra Admin.",
+          },
+          { status: 503 },
+        );
+      }
+    }
+
     return NextResponse.next();
   }
 
@@ -128,10 +179,50 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  if (session.needsTenantSelection && pathname !== "/select-academia") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/select-academia";
+    return NextResponse.redirect(url);
+  }
+
+  if (
+    pathNeedsTenantCookie(pathname) &&
+    !tenantId &&
+    session.role === "ultra_admin"
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/ultra-admin";
+    return NextResponse.redirect(url);
+  }
+
+  if (
+    pathNeedsTenantCookie(pathname) &&
+    !tenantId &&
+    session.role !== "ultra_admin"
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/select-academia";
+    return NextResponse.redirect(url);
+  }
+
   if (!canAccessPath(session.role, pathname)) {
     const url = request.nextUrl.clone();
-    url.pathname = homeForRole(session.role);
+    url.pathname = homePathForRole(session.role);
     return NextResponse.redirect(url);
+  }
+
+  const tenantPagesSuspended =
+    session &&
+    session.role !== "ultra_admin" &&
+    tenantId &&
+    pathNeedsTenantCookie(pathname);
+  if (tenantPagesSuspended) {
+    const tenantOff = await fetchTenantPlataformaOff(request);
+    if (tenantOff) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/manutencao-unidade";
+      return NextResponse.redirect(url);
+    }
   }
 
   return NextResponse.next();

@@ -1,32 +1,33 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth/get-server-session";
-import { assertAdminApiSession } from "@/lib/auth/require-admin-api";
-import { readDatabase } from "@/lib/db/file-store";
+import { requireTenantAdminContext } from "@/lib/tenancy/require-tenant-api";
 
 export async function GET() {
-  const session = await getServerSession();
-  if (!assertAdminApiSession(session)) {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
+  const ctx = await requireTenantAdminContext();
+  if (ctx instanceof NextResponse) return ctx;
+  const { tenantId, db } = ctx;
 
-  const db = await readDatabase();
-  const alunosAtivos = db.students.filter((s) => s.status === "ativo").length;
-  const faturamento = db.students.reduce((acc, s) => {
-    const plan = db.plans.find((p) => p.id === s.planoId);
+  const students = db.students.filter((s) => s.academiaId === tenantId);
+  const plans = db.plans.filter((p) => p.academiaId === tenantId);
+  const professors = db.professors.filter((p) => p.academiaId === tenantId);
+  const notices = db.notices.filter((n) => n.academiaId === tenantId);
+
+  const alunosAtivos = students.filter((s) => s.status === "ativo").length;
+  const faturamento = students.reduce((acc, s) => {
+    const plan = plans.find((p) => p.id === s.planoId);
     return acc + (plan?.precoMensal ?? 0);
   }, 0);
 
-  const planosPorNome = db.plans.map((p) => ({
+  const planosPorNome = plans.map((p) => ({
     nome: p.nome,
-    quantidade: db.students.filter((s) => s.planoId === p.id).length,
+    quantidade: students.filter((s) => s.planoId === p.id).length,
   }));
 
   return NextResponse.json({
-    alunosTotal: db.students.length,
+    alunosTotal: students.length,
     alunosAtivos,
-    professores: db.professors.length,
+    professores: professors.length,
     faturamentoMensalEstimado: Math.round(faturamento * 100) / 100,
     planosPorNome,
-    avisosRecentes: db.notices.slice(0, 4),
+    avisosRecentes: notices.slice(0, 4),
   });
 }
