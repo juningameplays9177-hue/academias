@@ -13,6 +13,7 @@ import {
   isValidGoogleMapsUrl,
   normalizeGoogleMapsUrl,
 } from "@/lib/validation/google-maps-url";
+import { sanitizeCorPrimaria } from "@/lib/tenant/branding";
 import { slugifyBr } from "@/lib/utils/slugify";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -43,6 +44,16 @@ export async function PATCH(request: Request, ctx: Ctx) {
     logoUrl?: string | null;
     googleMapsUrl?: string | null;
     plataformaDesligada?: boolean;
+    endereco?: string | null;
+    telefone?: string | null;
+    instagram?: string | null;
+    tagline?: string | null;
+    corPrimaria?: string | null;
+    corPrimariaSecundaria?: string | null;
+    corPrimariaSuave?: string | null;
+    corFundo?: string | null;
+    corTexto?: string | null;
+    metaDescription?: string | null;
   };
 
   if ("googleMapsUrl" in body) {
@@ -114,6 +125,53 @@ export async function PATCH(request: Request, ctx: Ctx) {
       a.googleMapsUrl = null;
     } else if (typeof body.googleMapsUrl === "string") {
       a.googleMapsUrl = normalizeGoogleMapsUrl(body.googleMapsUrl.trim());
+    }
+    if (body.endereco !== undefined) {
+      a.endereco =
+        body.endereco === null ? null : String(body.endereco).trim() || null;
+    }
+    if (body.telefone !== undefined) {
+      a.telefone =
+        body.telefone === null ? null : String(body.telefone).trim() || null;
+    }
+    if (body.instagram !== undefined) {
+      a.instagram =
+        body.instagram === null ? null : String(body.instagram).trim() || null;
+    }
+    if (body.tagline !== undefined) {
+      a.tagline = body.tagline === null ? null : String(body.tagline).trim() || null;
+    }
+    if (body.metaDescription !== undefined) {
+      a.metaDescription =
+        body.metaDescription === null
+          ? null
+          : String(body.metaDescription).trim().slice(0, 320) || null;
+    }
+    if (body.corPrimaria === null) {
+      a.corPrimaria = null;
+    } else if (typeof body.corPrimaria === "string") {
+      const c = sanitizeCorPrimaria(body.corPrimaria);
+      a.corPrimaria = c;
+    }
+    if (body.corPrimariaSecundaria === null) {
+      a.corPrimariaSecundaria = null;
+    } else if (body.corPrimariaSecundaria !== undefined) {
+      a.corPrimariaSecundaria = sanitizeCorPrimaria(String(body.corPrimariaSecundaria));
+    }
+    if (body.corPrimariaSuave === null) {
+      a.corPrimariaSuave = null;
+    } else if (body.corPrimariaSuave !== undefined) {
+      a.corPrimariaSuave = sanitizeCorPrimaria(String(body.corPrimariaSuave));
+    }
+    if (body.corFundo === null) {
+      a.corFundo = null;
+    } else if (body.corFundo !== undefined) {
+      a.corFundo = sanitizeCorPrimaria(String(body.corFundo));
+    }
+    if (body.corTexto === null) {
+      a.corTexto = null;
+    } else if (body.corTexto !== undefined) {
+      a.corTexto = sanitizeCorPrimaria(String(body.corTexto));
     }
 
     return a;

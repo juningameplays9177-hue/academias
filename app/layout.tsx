@@ -18,9 +18,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Beira Rio Fit · Recreio dos Bandeirantes",
+  title: {
+    default: "PowerFit · Rede de academias",
+    template: "%s · PowerFit",
+  },
   description:
-    "Musculação, funcional e bike indoor com horário estendido no Recreio dos Bandeirantes — RJ.",
+    "Plataforma multi-unidade: cada academia com site, marca e dados isolados. Ajuste título e descrição no app conforme a unidade selecionada.",
 };
 
 export default function RootLayout({

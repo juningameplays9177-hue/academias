@@ -12,6 +12,7 @@ import {
 import { canAccessPath, isUltraAdmin } from "@/lib/rbac/access-control";
 import type { RoleId } from "@/lib/rbac/roles";
 import type { TenantMembership } from "@/lib/auth/session-cookie";
+import type { TenantAcademia } from "@/lib/tenant/branding";
 
 export type AuthUser = {
   id: string;
@@ -23,16 +24,12 @@ export type AuthUser = {
   canSwitchTenant?: boolean;
 };
 
-export type AuthTenant = {
-  id: string;
-  nome: string;
-  slug: string;
-  logoUrl: string | null;
-};
+/** @deprecated use TenantAcademia */
+export type AuthTenant = TenantAcademia;
 
 type AuthSessionContextValue = {
   user: AuthUser | null;
-  tenant: AuthTenant | null;
+  tenant: TenantAcademia | null;
   loading: boolean;
   refresh: () => Promise<void>;
   logout: () => Promise<void>;
@@ -45,7 +42,7 @@ const AuthSessionContext = createContext<AuthSessionContextValue | null>(null);
 
 export function AuthSessionProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [tenant, setTenant] = useState<AuthTenant | null>(null);
+  const [tenant, setTenant] = useState<TenantAcademia | null>(null);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
@@ -54,7 +51,7 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
       const res = await fetch("/api/auth/me", { cache: "no-store" });
       const data = (await res.json()) as {
         user: AuthUser | null;
-        tenant: AuthTenant | null;
+        tenant: TenantAcademia | null;
       };
       setUser(data.user);
       setTenant(data.tenant);

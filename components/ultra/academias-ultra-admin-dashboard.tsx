@@ -12,11 +12,13 @@ import {
 import { CreateAcademyModal } from "@/components/CreateAcademyModal";
 import { Button } from "@/components/ui/button";
 import { useAcademies, type AcademiaDTO } from "@/hooks/useAcademies";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/contexts/toast-context";
 import { cn } from "@/lib/utils/cn";
 
 export function AcademiasUltraAdminDashboard() {
   const { pushToast } = useToast();
+  const { refresh: refreshAuth } = useAuth();
   const {
     academias,
     loading,
@@ -232,6 +234,7 @@ export function AcademiasUltraAdminDashboard() {
         editing={editing}
         onAfterSave={() => {
           void getAcademies();
+          void refreshAuth();
         }}
         onCreate={createAcademy}
         onUpdate={updateAcademy}

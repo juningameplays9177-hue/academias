@@ -1,6 +1,20 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { LoginPageClient } from "@/components/auth/login-page-client";
+import {
+  loginPageTitleParts,
+  resolveLoginAcademiaNome,
+} from "@/lib/auth/login-page-academia";
+
+type Props = { searchParams?: Promise<{ unidade?: string }> };
+
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  const sp = (await searchParams) ?? {};
+  const nome = await resolveLoginAcademiaNome(sp);
+  const { title } = loginPageTitleParts(nome);
+  return { title, description: "Entre ou cadastre-se na unidade selecionada." };
+}
 
 function LoginFallback() {
   return (
@@ -10,7 +24,11 @@ function LoginFallback() {
   );
 }
 
-export default function LoginPage() {
+export default async function LoginPage({ searchParams }: Props) {
+  const sp = (await searchParams) ?? {};
+  const nome = await resolveLoginAcademiaNome(sp);
+  const { h1 } = loginPageTitleParts(nome);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-neutral-950 to-black px-4 py-10">
       <div className="mx-auto flex max-w-5xl flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
@@ -18,7 +36,7 @@ export default function LoginPage() {
           <div className="space-y-2">
             <Link
               href="/select-academia"
-              className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm font-medium text-orange-200 transition hover:border-orange-500/50 hover:bg-white/10 hover:text-white"
+              className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm font-medium text-neutral-200 transition hover:border-white/35 hover:bg-white/10 hover:text-white"
             >
               ← Voltar à seleção de academia
             </Link>
@@ -26,9 +44,7 @@ export default function LoginPage() {
               Escolha unidade, acesse o site institucional ou faça login por aqui.
             </p>
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight">
-            Beira Rio Fit · Login e cadastro
-          </h1>
+          <h1 className="text-3xl font-semibold tracking-tight">{h1}</h1>
           <p className="text-sm leading-relaxed text-neutral-400">
             Entre com sua conta ou cadastre-se como aluno. Equipe e administração
             continuam com os e-mails já configurados.

@@ -20,6 +20,25 @@ export type AcademiaRecord = {
   estado?: string | null;
   /** Link “Compartilhar” do Google Maps da unidade. */
   googleMapsUrl?: string | null;
+  /** Endereço completo (cartão de visita / site). */
+  endereco?: string | null;
+  telefone?: string | null;
+  /** @handle ou URL — exibido no site. */
+  instagram?: string | null;
+  /** Subtítulo institucional (ex.: bairro · posicionamento). */
+  tagline?: string | null;
+  /** Cor da marca principal (hex) — botões, ícones fortes. */
+  corPrimaria?: string | null;
+  /** Segunda cor primária (hex) — gradientes, faixas, hovers. */
+  corPrimariaSecundaria?: string | null;
+  /** Terceira cor primária (hex) — fundos suaves, bordas leves. */
+  corPrimariaSuave?: string | null;
+  /** Fundo principal dos painéis e site (hex) — white-label. */
+  corFundo?: string | null;
+  /** Cor do texto principal sobre o fundo do tema (hex). */
+  corTexto?: string | null;
+  /** SEO: descrição padrão quando não há página específica. */
+  metaDescription?: string | null;
 };
 
 export type StudentStatus = "ativo" | "pendente" | "bloqueado" | "inativo";
@@ -148,6 +167,40 @@ export type AppDatabase = {
   version: number;
   platformSettings?: PlatformSettings;
   academias: AcademiaRecord[];
+  users: AuthUserRecord[];
+  students: StudentRecord[];
+  plans: PlanRecord[];
+  professors: ProfessorRecord[];
+  workouts: WorkoutTemplate[];
+  classes: ClassSlot[];
+  notices: NoticeRecord[];
+  attendance: AttendanceRecord[];
+};
+
+/**
+ * Registro global da rede: metadados das unidades + contas sem tenant (ultra admin).
+ * Persistido em `data/platform.json`.
+ */
+export type PlatformRegistry = {
+  version: number;
+  platformSettings?: PlatformSettings;
+  academias: AcademiaRecord[];
+  /** Apenas `academiaId === null` (ex.: ultra_admin). */
+  users: AuthUserRecord[];
+  /**
+   * Staff com `academiaId` apontando para unidade já removida (evita perda em split).
+   * Opcional; mesclado de volta em `readDatabase`.
+   */
+  orphanTenantUsers?: AuthUserRecord[];
+};
+
+/**
+ * Dados isolados de uma unidade (arquivo `data/tenants/{academiaId}.json`).
+ * Criado/atualizado quando o Ultra Admin cadastra ou altera a academia.
+ */
+export type TenantDatabase = {
+  version: number;
+  /** Admins operacionais desta academia (`role: admin`, `academiaId` = esta unidade). */
   users: AuthUserRecord[];
   students: StudentRecord[];
   plans: PlanRecord[];

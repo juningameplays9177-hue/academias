@@ -11,6 +11,7 @@ import {
   isValidGoogleMapsUrl,
   normalizeGoogleMapsUrl,
 } from "@/lib/validation/google-maps-url";
+import { sanitizeCorPrimaria } from "@/lib/tenant/branding";
 import { slugifyBr } from "@/lib/utils/slugify";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -46,6 +47,16 @@ export async function POST(request: Request) {
     status?: AcademiaRecord["status"];
     logoUrl?: string | null;
     googleMapsUrl?: string | null;
+    endereco?: string | null;
+    telefone?: string | null;
+    instagram?: string | null;
+    tagline?: string | null;
+    corPrimaria?: string | null;
+    corPrimariaSecundaria?: string | null;
+    corPrimariaSuave?: string | null;
+    corFundo?: string | null;
+    corTexto?: string | null;
+    metaDescription?: string | null;
   };
 
   const nome = body.nome?.trim() ?? "";
@@ -102,6 +113,36 @@ export async function POST(request: Request) {
   }
   const googleMapsUrl = normalizeGoogleMapsUrl(mapsRaw);
 
+  const endereco =
+    typeof body.endereco === "string" ? body.endereco.trim() || null : null;
+  const telefone =
+    typeof body.telefone === "string" ? body.telefone.trim() || null : null;
+  const instagram =
+    typeof body.instagram === "string" ? body.instagram.trim() || null : null;
+  const tagline =
+    typeof body.tagline === "string" ? body.tagline.trim() || null : null;
+  const metaDescription =
+    typeof body.metaDescription === "string"
+      ? body.metaDescription.trim().slice(0, 320) || null
+      : null;
+  const corPrimaria = sanitizeCorPrimaria(
+    typeof body.corPrimaria === "string" ? body.corPrimaria : undefined,
+  );
+  const corPrimariaSecundaria = sanitizeCorPrimaria(
+    typeof body.corPrimariaSecundaria === "string"
+      ? body.corPrimariaSecundaria
+      : undefined,
+  );
+  const corPrimariaSuave = sanitizeCorPrimaria(
+    typeof body.corPrimariaSuave === "string" ? body.corPrimariaSuave : undefined,
+  );
+  const corFundo = sanitizeCorPrimaria(
+    typeof body.corFundo === "string" ? body.corFundo : undefined,
+  );
+  const corTexto = sanitizeCorPrimaria(
+    typeof body.corTexto === "string" ? body.corTexto : undefined,
+  );
+
   const id = `acad_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
   const slugBase = body.slug?.trim() ? slugifyBr(body.slug) : slugifyBr(nome);
 
@@ -118,6 +159,16 @@ export async function POST(request: Request) {
       cidade,
       estado,
       googleMapsUrl,
+      endereco,
+      telefone,
+      instagram,
+      tagline,
+      corPrimaria,
+      corPrimariaSecundaria,
+      corPrimariaSuave,
+      corFundo,
+      corTexto,
+      metaDescription,
     };
     draft.academias.push(row);
     if (status === "ativo") {

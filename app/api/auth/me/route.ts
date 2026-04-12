@@ -6,21 +6,48 @@ import {
 } from "@/lib/auth/session-cookie";
 import { TENANT_COOKIE_NAME } from "@/lib/auth/tenant-cookie";
 import { readDatabase } from "@/lib/db/file-store";
+import { recordToTenantAcademia } from "@/lib/tenant/branding";
 
 export async function GET() {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   const session = token ? decodeSessionPayload(token) : null;
-  if (!session) {
-    return NextResponse.json({ user: null, tenant: null });
-  }
-
   const tenantId = cookieStore.get(TENANT_COOKIE_NAME)?.value ?? null;
   const db = await readDatabase();
+
   const academia =
-    tenantId && db.academias
-      ? db.academias.find((a) => a.id === tenantId) ?? null
+    tenantId && db.academias.length
+      ? (db.academias.find((a) => a.id === tenantId) ?? null)
       : null;
+
+  const tenant = academia
+    ? recordToTenantAcademia(academia)
+    : tenantId
+      ? {
+          id: tenantId,
+          nome: "Academia",
+          slug: tenantId,
+          endereco: null,
+          telefone: null,
+          instagram: null,
+          email: null,
+          logoUrl: null,
+          corPrimaria: null,
+          corPrimariaSecundaria: null,
+          corPrimariaSuave: null,
+          corFundo: null,
+          corTexto: null,
+          tagline: null,
+          metaDescription: null,
+          cidade: null,
+          estado: null,
+          googleMapsUrl: null,
+        }
+      : null;
+
+  if (!session) {
+    return NextResponse.json({ user: null, tenant });
+  }
 
   return NextResponse.json({
     user: {
@@ -32,15 +59,6 @@ export async function GET() {
       memberships: session.memberships ?? [],
       canSwitchTenant: (session.memberships?.length ?? 0) > 1,
     },
-    tenant: academia
-      ? {
-          id: academia.id,
-          nome: academia.nome,
-          slug: academia.slug,
-          logoUrl: academia.logoUrl ?? null,
-        }
-      : tenantId
-        ? { id: tenantId, nome: "Academia", slug: tenantId, logoUrl: null }
-        : null,
+    tenant,
   });
 }

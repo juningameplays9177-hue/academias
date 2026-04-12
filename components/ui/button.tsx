@@ -20,7 +20,7 @@ export function Button({
         size === "md" && "px-4 py-2 text-sm",
         size === "lg" && "px-5 py-2.5 text-base",
         variant === "primary" &&
-          "bg-accent text-white shadow-sm hover:-translate-y-0.5 hover:bg-orange-600 active:translate-y-0 dark:hover:bg-orange-400",
+          "bg-accent text-white shadow-sm hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0",
         variant === "ghost" &&
           "bg-transparent text-foreground hover:bg-zinc-100 dark:hover:bg-neutral-900",
         variant === "outline" &&

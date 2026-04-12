@@ -11,6 +11,12 @@ export async function GET() {
       nome: a.nome,
       slug: a.slug,
       logoUrl: a.logoUrl ?? null,
+      cidade: a.cidade ?? null,
+      estado: a.estado ?? null,
+      tagline: a.tagline ?? null,
+      corPrimaria: a.corPrimaria ?? null,
+      corPrimariaSecundaria: a.corPrimariaSecundaria ?? null,
+      corPrimariaSuave: a.corPrimariaSuave ?? null,
     }));
   return NextResponse.json({ academias });
 }

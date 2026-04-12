@@ -5,6 +5,7 @@ import {
   faBell,
   faChartPie,
   faCreditCard,
+  faPalette,
   faShieldHalved,
   faUserGraduate,
   faUserTie,
@@ -14,6 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: faChartPie },
+  { href: "/admin/marca", label: "Marca & site", icon: faPalette },
   { href: "/admin/alunos", label: "Alunos", icon: faUserGraduate },
   { href: "/admin/planos", label: "Planos", icon: faCreditCard },
   { href: "/admin/professores", label: "Professores", icon: faUserTie },

@@ -1,1 +1,4 @@
 database.json
+platform.json
+tenants/*.json
+*.bak

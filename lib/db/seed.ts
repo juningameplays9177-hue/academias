@@ -23,6 +23,18 @@ export function createSeedDatabase(): AppDatabase {
         email: "recepcao@beirariofit.com.br",
         cidade: "Rio de Janeiro",
         estado: "RJ",
+        googleMapsUrl: null,
+        endereco: "Av. das Américas, 4.200 — Recreio dos Bandeirantes, Rio de Janeiro — RJ",
+        telefone: "(21) 99788-4455",
+        instagram: "@beirariofit",
+        tagline: "Recreio dos Bandeirantes · treino sério sem frescura",
+        corPrimaria: "#ea580c",
+        corPrimariaSecundaria: "#fb923c",
+        corPrimariaSuave: "#7c2d12",
+        corFundo: null,
+        corTexto: null,
+        metaDescription:
+          "Beira Rio Fit no Recreio: musculação, funcional e bike indoor com horário estendido e ar limpo — RJ.",
       },
     ],
     users: [
