@@ -3,7 +3,12 @@
 import { useCallback, useState } from "react";
 import type { AcademiaApiShape } from "@/lib/academies/academy-api-helpers";
 
-export type AcademiaDTO = AcademiaApiShape;
+export type AcademiaDTO = AcademiaApiShape & {
+  /** Só na resposta de criação (POST): URL pública dedicada da unidade. */
+  publicSitePath?: string;
+  /** Só na resposta de criação: arquivo JSON isolado com alunos, planos, etc. */
+  tenantStorePath?: string;
+};
 
 type CreatePayload = {
   nome: string;
@@ -62,14 +67,25 @@ export function useAcademies() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    const j = (await res.json()) as { academia?: AcademiaDTO; error?: string };
+    const j = (await res.json()) as {
+      academia?: AcademiaApiShape;
+      publicSitePath?: string;
+      tenantStorePath?: string;
+      error?: string;
+    };
     if (!res.ok) {
       throw new Error(j.error ?? "Erro ao criar");
     }
     if (j.academia) {
-      setAcademias((prev) => [...prev, j.academia!].sort((a, b) => a.nome.localeCompare(b.nome)));
+      const row: AcademiaDTO = {
+        ...j.academia,
+        publicSitePath: j.publicSitePath,
+        tenantStorePath: j.tenantStorePath,
+      };
+      setAcademias((prev) => [...prev, row].sort((a, b) => a.nome.localeCompare(b.nome)));
+      return row;
     }
-    return j.academia;
+    return undefined;
   }, []);
 
   const updateAcademy = useCallback(async (id: string, payload: UpdatePayload) => {

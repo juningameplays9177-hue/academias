@@ -1,4 +1,5 @@
 database.json
 platform.json
 tenants/*.json
+tenants/**/tenant.json
 *.bak

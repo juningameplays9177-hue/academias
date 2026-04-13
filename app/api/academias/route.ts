@@ -5,7 +5,12 @@ import {
   serializeAcademia,
   uniqueSlugForDraft,
 } from "@/lib/academies/academy-api-helpers";
-import { mutateDatabase, readDatabase } from "@/lib/db/file-store";
+import {
+  materializeTenantDatabaseFile,
+  mutateDatabase,
+  readDatabase,
+  tenantStoreRelativePath,
+} from "@/lib/db/file-store";
 import type { AcademiaRecord } from "@/lib/db/types";
 import {
   isValidGoogleMapsUrl,
@@ -13,6 +18,7 @@ import {
 } from "@/lib/validation/google-maps-url";
 import { sanitizeCorPrimaria } from "@/lib/tenant/branding";
 import { slugifyBr } from "@/lib/utils/slugify";
+import { academiaPublicSitePath } from "@/lib/routes/academia-public-path";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -177,10 +183,17 @@ export async function POST(request: Request) {
     return row;
   });
 
+  await materializeTenantDatabaseFile(created.id);
+
   const db = await readDatabase();
   const a = db.academias.find((x) => x.id === created.id)!;
   return NextResponse.json(
-    { ok: true, academia: serializeAcademia(a) },
+    {
+      ok: true,
+      academia: serializeAcademia(a),
+      tenantStorePath: tenantStoreRelativePath(a.id),
+      publicSitePath: academiaPublicSitePath(a.slug),
+    },
     { status: 201 },
   );
 }

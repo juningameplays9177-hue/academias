@@ -24,8 +24,16 @@ function isStaticPath(pathname: string): boolean {
   );
 }
 
+/** Site institucional dedicado por unidade: `/a/{slug}` (cores e dados daquela academia). */
+function isPublicAcademiaSitePath(pathname: string): boolean {
+  if (!pathname.startsWith("/a/")) return false;
+  const parts = pathname.split("/").filter(Boolean);
+  return parts.length === 2 && parts[0] === "a" && parts[1].length > 0;
+}
+
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_PATHS.has(pathname)) return true;
+  if (isPublicAcademiaSitePath(pathname)) return true;
   if (pathname.startsWith("/_next")) return true;
   if (pathname.startsWith("/favicon")) return true;
   if (pathname.startsWith("/images")) return true;

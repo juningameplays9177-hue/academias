@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { homePathForRole } from "@/lib/rbac/home-path";
 import { isRoleId, type RoleId } from "@/lib/rbac/roles";
 import { paletteFromAcademyColors } from "@/lib/tenant/branding";
+import { academiaPublicSitePath } from "@/lib/routes/academia-public-path";
 
 type MeTenantChoices = {
   user: {
@@ -51,25 +52,10 @@ export function SelectAcademiaClient() {
   const [picking, setPicking] = useState<string | null>(null);
   const [openingSite, setOpeningSite] = useState<string | null>(null);
 
-  async function openPublicSite(slug: string) {
+  function openPublicSite(slug: string) {
     setOpeningSite(slug);
     try {
-      const res = await fetch("/api/public/visitor-tenant", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug }),
-      });
-      const body = (await res.json()) as { error?: string };
-      if (!res.ok) {
-        pushToast({
-          type: "error",
-          title: "Não foi possível abrir o site",
-          description: body.error,
-        });
-        return;
-      }
-      await refresh();
-      router.push(`/site?unidade=${encodeURIComponent(slug)}`);
+      router.push(academiaPublicSitePath(slug));
       router.refresh();
     } finally {
       setOpeningSite(null);

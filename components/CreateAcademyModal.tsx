@@ -292,10 +292,13 @@ export function CreateAcademyModal({
           metaDescription: metaDescription.trim() || null,
         });
         if (a) {
+          const bits = [`${a.nome} · @${a.slug}`];
+          if (a.publicSitePath) bits.push(`Página: ${a.publicSitePath}`);
+          if (a.tenantStorePath) bits.push(`Banco da unidade: ${a.tenantStorePath}`);
           pushToast({
             type: "success",
             title: "Academia criada com sucesso",
-            description: `${a.nome} · @${a.slug}`,
+            description: bits.join(" · "),
           });
           onAfterSave?.();
         }

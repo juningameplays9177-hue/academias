@@ -1,9 +1,10 @@
 /**
  * Armazenamento em disco **por unidade**:
  * - `data/platform.json` — academias (nome, slug, localização, contato, etc.) + usuários sem tenant (ultra admin).
- * - `data/tenants/{academiaId}.json` — dados daquela academia: admins operacionais, alunos, professores, planos,
- *   treinos, aulas (título/localização no sentido de agenda), avisos, frequência.
+ * - `data/tenants/{id-sanitizado}/tenant.json` — **uma pasta por academia** com o JSON isolado: admins da unidade,
+ *   alunos, professores, planos, treinos, aulas, avisos, frequência (não mistura com outras unidades).
  * A API continua usando `readDatabase` / `mutateDatabase`, que montam o `AppDatabase` unificado em memória.
+ * Arquivos legados `data/tenants/{id}.json` na raiz são movidos automaticamente para a subpasta.
  * Se existir `data/database.json` legado, ele é migrado uma vez para o novo layout e renomeado para `.bak`.
  */
 import { promises as fs } from "fs";
@@ -26,6 +27,11 @@ async function ensureDirs() {
   await fs.mkdir(TENANTS_DIR, { recursive: true });
 }
 
+/** Nome da pasta da unidade em `data/tenants/` (derivado do id da academia). */
+export function tenantSafeDirName(academiaId: string): string {
+  return academiaId.replace(/[^a-zA-Z0-9_-]/g, "_");
+}
+
 export function emptyTenantDatabase(): TenantDatabase {
   return {
     version: 1,
@@ -40,9 +46,74 @@ export function emptyTenantDatabase(): TenantDatabase {
   };
 }
 
+/** JSON operacional da unidade (dentro da pasta exclusiva da academia). */
 function tenantFilePath(academiaId: string): string {
-  const safe = academiaId.replace(/[^a-zA-Z0-9_-]/g, "_");
-  return path.join(TENANTS_DIR, `${safe}.json`);
+  const safe = tenantSafeDirName(academiaId);
+  return path.join(TENANTS_DIR, safe, "tenant.json");
+}
+
+/** Pasta dedicada à academia (somente esta unidade). */
+export function tenantStoreDirRelativePath(academiaId: string): string {
+  return `data/tenants/${tenantSafeDirName(academiaId)}/`;
+}
+
+/** Caminho relativo ao arquivo de dados da unidade (para logs / respostas de API). */
+export function tenantStoreRelativePath(academiaId: string): string {
+  return `${tenantStoreDirRelativePath(academiaId)}tenant.json`;
+}
+
+/** Migra `data/tenants/foo.json` → `data/tenants/foo/tenant.json` (uma pasta por academia). */
+async function migrateFlatTenantJsonToSubfolders(): Promise<void> {
+  await ensureDirs();
+  let entries: string[];
+  try {
+    entries = await fs.readdir(TENANTS_DIR);
+  } catch {
+    return;
+  }
+  for (const name of entries) {
+    if (!name.endsWith(".json")) continue;
+    const safe = name.slice(0, -".json".length);
+    const flatPath = path.join(TENANTS_DIR, name);
+    let isFile = false;
+    try {
+      const st = await fs.stat(flatPath);
+      isFile = st.isFile();
+    } catch {
+      continue;
+    }
+    if (!isFile) continue;
+
+    const dirPath = path.join(TENANTS_DIR, safe);
+    const nestedPath = path.join(dirPath, "tenant.json");
+    try {
+      await fs.access(nestedPath);
+      await fs.unlink(flatPath).catch(() => {});
+      continue;
+    } catch {
+      /* nested não existe */
+    }
+    await fs.mkdir(dirPath, { recursive: true });
+    await fs.rename(flatPath, nestedPath);
+  }
+}
+
+/** Dados operacionais de uma única academia extraídos do banco unificado em memória. */
+export function tenantDataSliceFromMerged(
+  merged: AppDatabase,
+  academiaId: string,
+): TenantDatabase {
+  return {
+    version: 1,
+    users: merged.users.filter((u) => u.academiaId === academiaId),
+    students: merged.students.filter((s) => s.academiaId === academiaId),
+    plans: merged.plans.filter((p) => p.academiaId === academiaId),
+    professors: merged.professors.filter((p) => p.academiaId === academiaId),
+    workouts: merged.workouts.filter((w) => w.academiaId === academiaId),
+    classes: merged.classes.filter((c) => c.academiaId === academiaId),
+    notices: merged.notices.filter((n) => n.academiaId === academiaId),
+    attendance: merged.attendance.filter((x) => x.academiaId === academiaId),
+  };
 }
 
 function splitMergedToParts(merged: AppDatabase): {
@@ -65,21 +136,22 @@ function splitMergedToParts(merged: AppDatabase): {
 
   const tenants = new Map<string, TenantDatabase>();
   for (const a of merged.academias) {
-    const id = a.id;
-    tenants.set(id, {
-      version: 1,
-      users: merged.users.filter((u) => u.academiaId === id),
-      students: merged.students.filter((s) => s.academiaId === id),
-      plans: merged.plans.filter((p) => p.academiaId === id),
-      professors: merged.professors.filter((p) => p.academiaId === id),
-      workouts: merged.workouts.filter((w) => w.academiaId === id),
-      classes: merged.classes.filter((c) => c.academiaId === id),
-      notices: merged.notices.filter((n) => n.academiaId === id),
-      attendance: merged.attendance.filter((x) => x.academiaId === id),
-    });
+    tenants.set(a.id, tenantDataSliceFromMerged(merged, a.id));
   }
 
   return { platform, tenants };
+}
+
+/**
+ * Garante que exista o arquivo JSON isolado da unidade após criação ou ajustes.
+ * Não altera outras academias.
+ */
+export async function materializeTenantDatabaseFile(academiaId: string): Promise<void> {
+  await ensureDirs();
+  const merged = await readDatabase();
+  if (!merged.academias.some((a) => a.id === academiaId)) return;
+  const slice = tenantDataSliceFromMerged(merged, academiaId);
+  await saveTenant(academiaId, slice);
 }
 
 async function loadPlatform(): Promise<PlatformRegistry> {
@@ -92,17 +164,25 @@ async function savePlatform(p: PlatformRegistry): Promise<void> {
 }
 
 async function loadTenant(academiaId: string): Promise<TenantDatabase> {
-  const fp = tenantFilePath(academiaId);
+  const nested = tenantFilePath(academiaId);
   try {
-    const raw = await fs.readFile(fp, "utf-8");
+    const raw = await fs.readFile(nested, "utf-8");
     return JSON.parse(raw) as TenantDatabase;
   } catch {
-    return emptyTenantDatabase();
+    const safe = tenantSafeDirName(academiaId);
+    const legacyFlat = path.join(TENANTS_DIR, `${safe}.json`);
+    try {
+      const raw = await fs.readFile(legacyFlat, "utf-8");
+      return JSON.parse(raw) as TenantDatabase;
+    } catch {
+      return emptyTenantDatabase();
+    }
   }
 }
 
 async function saveTenant(academiaId: string, t: TenantDatabase): Promise<void> {
   const fp = tenantFilePath(academiaId);
+  await fs.mkdir(path.dirname(fp), { recursive: true });
   await fs.writeFile(fp, JSON.stringify(t, null, 2), "utf-8");
 }
 
@@ -144,9 +224,10 @@ async function mergeFromDisk(platform: PlatformRegistry): Promise<AppDatabase> {
   };
 }
 
-/** Grava `platform.json` + um JSON por academia e remove arquivos de unidades excluídas. */
+/** Grava `platform.json` + pasta/arquivo por academia e remove diretórios de unidades excluídas. */
 export async function persistMergedDatabase(merged: AppDatabase): Promise<void> {
   await ensureDirs();
+  await migrateFlatTenantJsonToSubfolders();
   const { platform, tenants } = splitMergedToParts(merged);
   await savePlatform(platform);
 
@@ -154,17 +235,28 @@ export async function persistMergedDatabase(merged: AppDatabase): Promise<void> 
     await saveTenant(id, t);
   }
 
-  let dirFiles: string[] = [];
+  const usedSafes = new Set(platform.academias.map((a) => tenantSafeDirName(a.id)));
+  let entries: import("fs").Dirent[] = [];
   try {
-    dirFiles = await fs.readdir(TENANTS_DIR);
+    entries = await fs.readdir(TENANTS_DIR, { withFileTypes: true });
   } catch {
     return;
   }
-  for (const f of dirFiles) {
-    if (!f.endsWith(".json")) continue;
-    const fp = path.join(TENANTS_DIR, f);
-    const stillUsed = platform.academias.some((a) => tenantFilePath(a.id) === fp);
-    if (!stillUsed) await fs.unlink(fp).catch(() => {});
+  for (const ent of entries) {
+    const full = path.join(TENANTS_DIR, ent.name);
+    if (ent.name === ".gitkeep") continue;
+    if (ent.isDirectory()) {
+      if (!usedSafes.has(ent.name)) {
+        await fs.rm(full, { recursive: true, force: true }).catch(() => {});
+      }
+      continue;
+    }
+    if (ent.isFile() && ent.name.endsWith(".json")) {
+      const safe = ent.name.replace(/\.json$/, "");
+      if (!usedSafes.has(safe)) {
+        await fs.unlink(full).catch(() => {});
+      }
+    }
   }
 }
 
@@ -198,6 +290,7 @@ async function migrateLegacyDatabaseIfPresent(): Promise<void> {
 export async function readDatabase(): Promise<AppDatabase> {
   await ensureDirs();
   await migrateLegacyDatabaseIfPresent();
+  await migrateFlatTenantJsonToSubfolders();
 
   let platform: PlatformRegistry;
   try {
@@ -228,6 +321,7 @@ export async function mutateDatabase<T>(
 export async function readPlatformRegistry(): Promise<PlatformRegistry> {
   await ensureDirs();
   await migrateLegacyDatabaseIfPresent();
+  await migrateFlatTenantJsonToSubfolders();
   try {
     return await loadPlatform();
   } catch {

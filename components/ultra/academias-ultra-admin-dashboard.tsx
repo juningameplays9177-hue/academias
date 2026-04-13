@@ -81,9 +81,14 @@ export function AcademiasUltraAdminDashboard() {
         <div>
           <h1 className="text-2xl font-semibold text-white">Academias da rede</h1>
           <p className="mt-1 max-w-2xl text-sm text-neutral-400">
-            Cadastre novas unidades multi-tenant. Ao criar em <strong className="text-neutral-200">ativo</strong>, a
-            plataforma já gera <strong className="text-neutral-200">planos padrão</strong> (Básico, Full time,
-            Performance) isolados por academia.
+            Cada nova unidade ganha página pública própria (<span className="font-mono text-neutral-300">/a/slug</span>),
+            pasta só dela em{" "}
+            <span className="font-mono text-neutral-300">
+              {"data/tenants/{idDaUnidade}/tenant.json"}
+            </span>{" "}
+            (isolada das
+            outras) e cores/contatos independentes. Em status <span className="text-neutral-200">ativo</span>, já nascem
+            os três planos padrão (Básico, Full time, Performance) nesse arquivo.
           </p>
         </div>
         <Button

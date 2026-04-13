@@ -317,9 +317,9 @@ export function MarketingPage() {
             </>
           ) : (
             <>
-              Selecione uma unidade no hub (ou abra o link com{" "}
-              <span className="font-mono text-neutral-200">?unidade=slug-da-academia</span>) para ver o
-              site com planos, modalidades e contatos.
+              Selecione uma unidade no hub ou abra o endereço da unidade, por exemplo{" "}
+              <span className="font-mono text-neutral-200">/a/slug-da-academia</span>, para ver o site com
+              planos, modalidades e contatos.
             </>
           )}
         </p>
