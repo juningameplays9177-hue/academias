@@ -55,11 +55,11 @@ export default async function LoginPage({ searchParams }: Props) {
       <div className="relative mx-auto flex min-h-[calc(100vh-5rem)] max-w-6xl flex-col items-center justify-center gap-12 lg:flex-row lg:items-center lg:justify-between lg:gap-16">
         <header className="w-full max-w-xl text-center lg:max-w-lg lg:text-left">
           <h1 className="sr-only">{h1}</h1>
-          <div
-            className="flex flex-col items-center gap-3 lg:items-start"
+          <figure
+            className="m-0 flex flex-col items-center gap-3 lg:items-start"
             aria-label="Impulso — tecnologia para academias"
           >
-            <div className="inline-flex rounded-2xl bg-[#0B0F1A] px-5 py-4 shadow-xl ring-1 ring-white/10 sm:px-7 sm:py-5">
+            <div className="inline-flex rounded-2xl bg-black px-5 py-4 shadow-xl ring-1 ring-white/10 sm:px-7 sm:py-5">
               {/* eslint-disable-next-line @next/next/no-img-element -- /public; fundo escuro fixo para o PNG com tipografia clara */}
               <img
                 src="/branding/impulso-logo.png"
@@ -67,12 +67,11 @@ export default async function LoginPage({ searchParams }: Props) {
                 width={320}
                 height={96}
                 decoding="async"
-                fetchPriority="high"
                 loading="eager"
                 className="block h-auto w-[min(100%,280px)] max-w-full sm:w-80"
               />
             </div>
-          </div>
+          </figure>
           <p className="mt-6 text-base font-medium leading-relaxed text-muted sm:mt-8 sm:text-lg">
             Tecnologia que impulsiona o crescimento das academias.
           </p>
