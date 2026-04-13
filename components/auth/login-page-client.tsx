@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useState } from "react";
 import { LoginForm } from "@/components/auth/login-form";
 import { RegisterForm } from "@/components/auth/register-form";
@@ -68,6 +69,20 @@ export function LoginPageClient() {
           </div>
         )}
       </div>
+
+      <p className="mt-4 border-t border-neutral-200 pt-4 text-center text-sm leading-relaxed text-neutral-600">
+        <Link
+          href="/select-academia"
+          className="font-medium text-orange-700 underline decoration-orange-400/50 underline-offset-2 transition hover:text-orange-900 hover:decoration-orange-600"
+        >
+          Escolher outra academia
+        </Link>
+        <span className="text-neutral-500">
+          {" "}
+          — lista de unidades, entrar por outro link ou trocar de unidade antes de
+          acessar.
+        </span>
+      </p>
     </div>
   );
 }
