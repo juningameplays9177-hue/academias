@@ -93,28 +93,82 @@ export function DashboardShell({
             {roleTag}
           </span>
           <span className="text-neutral-200">
-            Painel interno · <span className="font-medium text-tenant-shell-fg">{brandName}</span>
-            {tenant ? " — dados isolados desta unidade." : " — controle da rede."}
+            {tenant
+              ? "Painel interno · informações isoladas nesta unidade."
+              : isUltraAdmin
+                ? "Painel interno · visão da rede de academias."
+                : "Painel interno · aguardando contexto de unidade."}
           </span>
         </p>
       </div>
 
       <header className="sticky top-0 z-50 border-b border-tenant-shell-border/60 bg-tenant-shell-card/85 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-          <Link href={basePath} className="flex min-w-0 items-center gap-3 leading-tight">
+          <Link
+            href={basePath}
+            className={cn(
+              "group flex min-w-0 max-w-[min(100%,28rem)] flex-1 items-center gap-3 rounded-xl py-1 pr-2 transition sm:gap-3.5 sm:pr-3",
+              "outline-none hover:bg-white/[0.04] focus-visible:ring-2 focus-visible:ring-[color:var(--tenant-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a]",
+            )}
+          >
             {tenant?.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={tenant.logoUrl}
                 alt=""
-                className="h-10 w-10 shrink-0 rounded-lg border border-tenant-shell-border/40 object-cover"
+                className="h-11 w-11 shrink-0 rounded-xl border object-cover shadow-lg transition duration-300 group-hover:scale-[1.02] sm:h-12 sm:w-12"
+                style={{
+                  borderColor: `color-mix(in srgb, ${soft} 55%, transparent)`,
+                  boxShadow: `0 6px 24px -8px color-mix(in srgb, ${primary} 50%, transparent)`,
+                }}
               />
-            ) : null}
-            <div className="flex min-w-0 flex-col">
-              <span className="max-w-[220px] truncate text-lg font-semibold tracking-tight text-tenant-shell-fg sm:max-w-[280px]">
-                {brandName}
-              </span>
-              <span className="max-w-[220px] truncate text-[11px] text-neutral-400 sm:max-w-[320px]">
+            ) : (
+              <div
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border text-base font-bold tabular-nums text-black sm:h-12 sm:w-12 sm:text-lg"
+                style={
+                  tenant
+                    ? {
+                        borderColor: `color-mix(in srgb, ${soft} 50%, transparent)`,
+                        background: `linear-gradient(145deg, color-mix(in srgb, ${primary} 92%, white), color-mix(in srgb, ${primary} 65%, #171717))`,
+                        boxShadow: `0 6px 22px -6px color-mix(in srgb, ${primary} 55%, transparent)`,
+                      }
+                    : {
+                        borderColor: "rgba(255,255,255,0.12)",
+                        background: "linear-gradient(145deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04))",
+                        boxShadow: "none",
+                      }
+                }
+                aria-hidden
+              >
+                <span className={tenant ? "" : "text-neutral-200"}>
+                  {brandName.trim().slice(0, 1).toLocaleUpperCase("pt-BR")}
+                </span>
+              </div>
+            )}
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5 py-0.5">
+              <div className="flex min-w-0 items-center gap-2">
+                <span
+                  className="min-w-0 truncate text-lg font-bold leading-tight tracking-tight text-white sm:text-xl"
+                  style={
+                    tenant
+                      ? {
+                          textShadow: `0 1px 0 rgba(0,0,0,0.45), 0 0 22px color-mix(in srgb, ${primary} 38%, transparent)`,
+                        }
+                      : { textShadow: "0 1px 0 rgba(0,0,0,0.4)" }
+                  }
+                >
+                  {brandName}
+                </span>
+                {tenant?.slug ? (
+                  <span
+                    className="hidden shrink-0 rounded-md border border-white/10 bg-white/[0.06] px-1.5 py-px font-mono text-[10px] font-medium uppercase tracking-wide text-neutral-400 sm:inline-flex"
+                    title={tenant.slug}
+                  >
+                    @{tenant.slug}
+                  </span>
+                ) : null}
+              </div>
+              <span className="line-clamp-1 text-[11px] font-medium text-neutral-500 sm:text-xs sm:text-neutral-400">
                 {headerTagline}
               </span>
             </div>
