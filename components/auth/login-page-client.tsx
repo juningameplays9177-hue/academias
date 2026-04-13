@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useState } from "react";
 import { LoginForm } from "@/components/auth/login-form";
@@ -23,18 +22,17 @@ export function LoginPageClient() {
       <div className="border-b border-border bg-gradient-to-b from-card to-background px-5 pt-6">
         <div className="mb-5 flex flex-col items-center gap-2">
           <div className="rounded-2xl bg-tenant-shell-card px-4 py-3 shadow-md ring-1 ring-tenant-shell-border/40 sm:px-5 sm:py-3.5">
-            <Image
+            {/* eslint-disable-next-line @next/next/no-img-element -- logo em /public */}
+            <img
               src="/branding/impulso-logo.png"
               alt="Impulso"
               width={260}
               height={78}
-              className="h-auto w-40 sm:w-44"
-              priority
+              decoding="async"
+              fetchPriority="high"
+              className="block h-auto w-40 max-w-full sm:w-44"
             />
           </div>
-          <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted">
-            Impulso
-          </span>
         </div>
         <div
           className="flex rounded-2xl bg-accent-soft/50 p-1 dark:bg-accent-soft/30"

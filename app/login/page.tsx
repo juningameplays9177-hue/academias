@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import { Suspense } from "react";
 import { LoginPageClient } from "@/components/auth/login-page-client";
 import {
@@ -57,18 +56,17 @@ export default async function LoginPage({ searchParams }: Props) {
         <header className="w-full max-w-xl text-center lg:max-w-lg lg:text-left">
           <div className="flex flex-col items-center gap-3 lg:items-start">
             <div className="inline-flex rounded-2xl bg-card px-5 py-4 shadow-lg ring-1 ring-border sm:px-7 sm:py-5 dark:bg-tenant-shell-card dark:ring-tenant-shell-border/50">
-              <Image
+              {/* eslint-disable-next-line @next/next/no-img-element -- asset estático em /public; <img> evita falhas do optimizer em alguns ambientes */}
+              <img
                 src="/branding/impulso-logo.png"
-                alt="Impulso — tecnologia para academias"
+                alt="Impulso"
                 width={320}
                 height={96}
-                priority
-                className="h-auto w-[min(100%,240px)] sm:w-72"
+                decoding="async"
+                fetchPriority="high"
+                className="block h-auto w-[min(100%,260px)] max-w-full sm:w-72"
               />
             </div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-muted">
-              Impulso
-            </p>
           </div>
           <h1 className="mt-6 text-2xl font-semibold tracking-tight text-foreground sm:mt-8 sm:text-3xl">
             {h1}
