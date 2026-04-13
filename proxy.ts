@@ -14,7 +14,6 @@ import type { RoleId } from "@/lib/rbac/roles";
 
 const PUBLIC_PATHS = new Set([
   "/login",
-  "/select-academia",
   "/site",
   "/api/auth/login",
   "/api/contact",
@@ -113,7 +112,8 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!publicOff && pathname === "/") {
-    return NextResponse.redirect(new URL("/select-academia", request.url));
+    const dest = session ? "/select-academia" : "/login";
+    return NextResponse.redirect(new URL(dest, request.url));
   }
 
   if (pathname === "/login" && session?.needsTenantSelection) {

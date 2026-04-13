@@ -11,8 +11,6 @@ import { cn } from "@/lib/utils/cn";
 import { useToast } from "@/contexts/toast-context";
 import { homePathForRole } from "@/lib/rbac/home-path";
 import { isRoleId, type RoleId } from "@/lib/rbac/roles";
-import { paletteFromAcademyColors } from "@/lib/tenant/branding";
-import { academiaPublicSitePath } from "@/lib/routes/academia-public-path";
 
 type MeTenantChoices = {
   user: {
@@ -25,40 +23,15 @@ type MeTenantChoices = {
   } | null;
 };
 
-type PublicAcademia = {
-  id: string;
-  nome: string;
-  slug: string;
-  logoUrl: string | null;
-  cidade?: string | null;
-  estado?: string | null;
-  tagline?: string | null;
-  corPrimaria?: string | null;
-  corPrimariaSecundaria?: string | null;
-  corPrimariaSuave?: string | null;
-};
-
 export function SelectAcademiaClient() {
   const router = useRouter();
   const { pushToast } = useToast();
   const [choices, setChoices] = useState<TenantMembership[]>([]);
-  const [publicAcademias, setPublicAcademias] = useState<PublicAcademia[]>([]);
   const [user, setUser] = useState<MeTenantChoices["user"] | null | undefined>(
     undefined,
   );
   const [loading, setLoading] = useState(true);
   const [picking, setPicking] = useState<string | null>(null);
-  const [openingSite, setOpeningSite] = useState<string | null>(null);
-
-  function openPublicSite(slug: string) {
-    setOpeningSite(slug);
-    try {
-      router.push(academiaPublicSitePath(slug));
-      router.refresh();
-    } finally {
-      setOpeningSite(null);
-    }
-  }
 
   useEffect(() => {
     let cancelled = false;
@@ -67,41 +40,17 @@ export function SelectAcademiaClient() {
         const res = await fetch("/api/auth/me", { cache: "no-store" });
         const data = (await res.json()) as MeTenantChoices;
         if (!res.ok) {
-          if (!cancelled) {
-            setUser(null);
-            const pr = await fetch("/api/public/academias", { cache: "no-store" });
-            if (!cancelled && pr.ok) {
-              const pj = (await pr.json()) as { academias?: PublicAcademia[] };
-              setPublicAcademias(pj.academias ?? []);
-            }
-          }
+          if (!cancelled) setUser(null);
           return;
         }
         if (!cancelled) {
           setUser(data.user);
           if (data.user?.needsTenantSelection) {
             setChoices(data.user.memberships ?? []);
-          } else if (!data.user) {
-            const pr = await fetch("/api/public/academias", { cache: "no-store" });
-            if (pr.ok) {
-              const pj = (await pr.json()) as { academias?: PublicAcademia[] };
-              if (!cancelled) setPublicAcademias(pj.academias ?? []);
-            }
           }
         }
       } catch {
-        if (!cancelled) {
-          setUser(null);
-          try {
-            const pr = await fetch("/api/public/academias", { cache: "no-store" });
-            if (!cancelled && pr.ok) {
-              const pj = (await pr.json()) as { academias?: PublicAcademia[] };
-              setPublicAcademias(pj.academias ?? []);
-            }
-          } catch {
-            /* ignore */
-          }
-        }
+        if (!cancelled) setUser(null);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -110,6 +59,12 @@ export function SelectAcademiaClient() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (loading || user === undefined) return;
+    if (user !== null) return;
+    router.replace("/login");
+  }, [loading, user, router]);
 
   useEffect(() => {
     if (loading) return;
@@ -156,118 +111,7 @@ export function SelectAcademiaClient() {
 
   if (user === null) {
     return (
-      <section className="space-y-6">
-        <div
-          className="rounded-2xl border bg-gradient-to-r via-transparent to-transparent p-4 sm:p-5"
-          style={{
-            borderColor: "rgba(255,255,255,0.12)",
-            backgroundImage:
-              "linear-gradient(to right, rgba(255,255,255,0.07), transparent, rgba(255,255,255,0.05))",
-          }}
-        >
-          <div className="flex flex-col gap-1 text-center sm:text-left">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
-              Passo 1 · Selecionar academia
-            </p>
-            <h2 className="text-xl font-semibold tracking-tight text-white sm:text-2xl">
-              Em qual unidade você quer entrar?
-            </h2>
-            <p className="text-sm text-neutral-400">
-              Toque em <span className="font-medium text-neutral-200">Entrar nesta academia</span>{" "}
-              e faça login com e-mail e senha. Cada unidade mantém os dados separados.
-            </p>
-          </div>
-        </div>
-
-        {publicAcademias.length > 0 ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {publicAcademias.map((a) => {
-              const { primary, secondary, soft } = paletteFromAcademyColors(
-                a.corPrimaria,
-                a.corPrimariaSecundaria,
-                a.corPrimariaSuave,
-              );
-              return (
-              <div
-                key={a.id}
-                className="flex flex-col rounded-2xl border bg-white/[0.06] p-5 shadow-xl backdrop-blur"
-                style={{
-                  borderColor: `color-mix(in srgb, ${soft} 55%, transparent)`,
-                  backgroundImage: `linear-gradient(155deg, color-mix(in srgb, ${primary} 12%, transparent), rgba(0,0,0,0.12) 45%, color-mix(in srgb, ${secondary} 9%, transparent))`,
-                  boxShadow: `0 1px 0 0 color-mix(in srgb, ${soft} 22%, transparent)`,
-                }}
-              >
-                <div className="flex items-start gap-3">
-                  <div
-                    className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl"
-                    style={{
-                      backgroundColor: `color-mix(in srgb, ${primary} 20%, transparent)`,
-                      color: secondary,
-                    }}
-                  >
-                    {a.logoUrl ? (
-                      <img
-                        src={a.logoUrl}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <FontAwesomeIcon icon={faBuilding} className="text-xl" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="truncate text-lg font-semibold text-white">{a.nome}</h3>
-                    <p className="text-xs text-neutral-500">@{a.slug}</p>
-                    {a.tagline ? (
-                      <p className="mt-1 line-clamp-2 text-xs text-neutral-400">{a.tagline}</p>
-                    ) : a.cidade ? (
-                      <p className="mt-1 text-xs text-neutral-500">
-                        {a.cidade}
-                        {a.estado ? ` · ${a.estado}` : ""}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-                <div className="mt-5 flex flex-col gap-2">
-                  <Link
-                    href={`/login?unidade=${encodeURIComponent(a.slug)}`}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-black transition hover:brightness-110"
-                    style={{ backgroundColor: primary }}
-                  >
-                    Entrar nesta academia
-                    <FontAwesomeIcon icon={faArrowRight} className="text-xs" />
-                  </Link>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full border-white/25 text-neutral-100 hover:bg-white/10"
-                    style={{
-                      borderColor: `color-mix(in srgb, ${primary} 42%, transparent)`,
-                    }}
-                    disabled={openingSite !== null}
-                    onClick={() => void openPublicSite(a.slug)}
-                  >
-                    {openingSite === a.slug ? "Abrindo site…" : "Ver site desta unidade"}
-                  </Button>
-                </div>
-              </div>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-6 text-center text-sm text-neutral-500">
-            Não foi possível listar unidades ativas agora. Você ainda pode usar o{" "}
-            <Link href="/login" className="font-medium text-neutral-200 underline decoration-white/30 hover:decoration-white/60">
-              login direto
-            </Link>{" "}
-            ou o{" "}
-            <Link href="/site" className="font-medium text-neutral-200 underline decoration-white/30 hover:decoration-white/60">
-              site institucional
-            </Link>
-            .
-          </p>
-        )}
-      </section>
+      <p className="text-center text-sm text-neutral-500">Redirecionando…</p>
     );
   }
 
