@@ -104,8 +104,7 @@ export function LoginForm({ initialEmail = "" }: Props) {
           Entrar
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-[#374151]">
-          Use o e-mail e a senha da sua conta. Contas de admin/professor seguem o
-          fluxo antigo; alunos cadastrados aqui usam a senha que você criou.
+          Digite o e-mail e a senha vinculados à sua conta na academia.
         </p>
         {unidadeSlug ? (
           <div className="mt-4 rounded-2xl border border-[#3B82F6]/25 bg-gradient-to-br from-[#1E3A8A]/12 to-[#3B82F6]/10 px-4 py-3 text-sm text-[#0B0F1A] shadow-sm">

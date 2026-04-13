@@ -33,7 +33,7 @@ export function loginPageTitleParts(nome: string | null): { title: string; h1: s
     };
   }
   return {
-    title: `${suffix} · PowerFit`,
+    title: `${suffix} · Impulso`,
     h1: suffix,
   };
 }

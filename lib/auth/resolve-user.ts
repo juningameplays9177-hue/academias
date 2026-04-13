@@ -116,13 +116,3 @@ export function resolveLoginMatches(
 
   return out;
 }
-
-/** @deprecated use resolveLoginMatches — primeiro match apenas */
-export function resolveLogin(
-  db: AppDatabase,
-  email: string,
-  password: string,
-): ResolvedAuthUser | null {
-  const all = resolveLoginMatches(db, email, password);
-  return all[0] ?? null;
-}

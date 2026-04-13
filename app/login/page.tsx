@@ -71,10 +71,6 @@ export default async function LoginPage({ searchParams }: Props) {
           <p className="mt-3 text-base font-medium leading-relaxed text-[#22D3EE]/95 sm:text-lg">
             Tecnologia que impulsiona o crescimento das academias.
           </p>
-          <p className="mt-5 text-sm leading-relaxed text-[#E5E7EB]/85 sm:text-[0.9375rem]">
-            Entre com sua conta ou cadastre-se como aluno. Equipe e administração
-            continuam com os e-mails já configurados.
-          </p>
         </header>
 
         <div className="flex w-full max-w-md flex-1 justify-center lg:justify-end">

@@ -58,7 +58,7 @@ export function TenantHeadEffects() {
     if (onLogin && !user) {
       document.title = academia?.nome?.trim()
         ? `${academia.nome.trim()} · Login e cadastro`
-        : "Login e cadastro · PowerFit";
+        : "Login e cadastro · Impulso";
     } else if (academia?.nome) {
       const suffix = user?.role ? ` · ${labelRole(user.role)}` : "";
       document.title = `${academia.nome}${suffix}`;
