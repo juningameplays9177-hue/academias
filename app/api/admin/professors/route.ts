@@ -15,7 +15,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const ctx = await requireTenantAdminContext();
   if (ctx instanceof NextResponse) return ctx;
-  const { tenantId, db, session } = ctx;
+  const { tenantId, db } = ctx;
   const body = (await request.json()) as Partial<ProfessorRecord>;
   const email = (body.email ?? "").trim().toLowerCase();
   if (!email) {

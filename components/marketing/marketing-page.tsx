@@ -69,7 +69,7 @@ export function MarketingPage() {
 
   useEffect(() => {
     if (academia) setTenantBootstrapFailed(false);
-  }, [academia?.id]);
+  }, [academia]);
 
   useEffect(() => {
     if (tenantLoading) return;
@@ -154,7 +154,14 @@ export function MarketingPage() {
       })();
       return () => ac.abort();
     }
-  }, [tenantLoading, academia, user, unidadeQuery, refreshTenant]);
+  }, [
+    tenantLoading,
+    academia,
+    user,
+    unidadeQuery,
+    refreshTenant,
+    tenantBootstrapFailed,
+  ]);
 
   const awaitingTenantResolution = Boolean(
     !tenantLoading &&

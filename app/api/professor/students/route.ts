@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { readDatabase } from "@/lib/db/file-store";
 import { studentForProfessorList } from "@/lib/db/student-public";
 import { requireTenantProfessorContext } from "@/lib/tenancy/require-tenant-api";
 

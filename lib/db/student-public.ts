@@ -4,7 +4,8 @@ import type { StudentRecord } from "@/lib/db/types";
 export function studentWithoutPassword(
   s: StudentRecord,
 ): Omit<StudentRecord, "password"> {
-  const { password: _removed, ...rest } = s;
+  const { password, ...rest } = s;
+  void password;
   return rest;
 }
 
@@ -12,6 +13,8 @@ export function studentWithoutPassword(
 export function studentForProfessorList(
   s: StudentRecord,
 ): Omit<StudentRecord, "password" | "consumoKcalPorDia"> {
-  const { password: _p, consumoKcalPorDia: _c, ...rest } = s;
+  const { password, consumoKcalPorDia, ...rest } = s;
+  void password;
+  void consumoKcalPorDia;
   return rest;
 }

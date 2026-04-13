@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { readDatabase } from "@/lib/db/file-store";
 import { studentWithoutPassword } from "@/lib/db/student-public";
 import { requireTenantAlunoContext } from "@/lib/tenancy/require-tenant-api";
 

@@ -151,6 +151,7 @@ export function AcademiasUltraAdminDashboard() {
               <div className="flex items-start gap-3">
                 <div className="flex h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-black/50">
                   {a.logoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- URL dinâmica (upload / data URL)
                     <img src={a.logoUrl} alt="" className="h-full w-full object-cover" />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-xs font-bold text-orange-400/80">

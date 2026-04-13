@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { mutateDatabase, readDatabase } from "@/lib/db/file-store";
+import { mutateDatabase } from "@/lib/db/file-store";
 import type { WorkoutTemplate } from "@/lib/db/types";
 import { requireTenantProfessorContext } from "@/lib/tenancy/require-tenant-api";
 

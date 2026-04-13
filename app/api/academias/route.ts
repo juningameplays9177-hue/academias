@@ -95,7 +95,7 @@ export async function POST(request: Request) {
   const status: AcademiaRecord["status"] =
     body.status === "inativa" ? "inativa" : "ativo";
 
-  let logoUrl: string | null =
+  const logoUrl: string | null =
     typeof body.logoUrl === "string" && body.logoUrl.length > 0
       ? body.logoUrl
       : null;

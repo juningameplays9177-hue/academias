@@ -44,7 +44,7 @@ export function DashboardShell({
 }: Props) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, tenant, logout, canSwitchTenant, isUltraAdmin, refresh } = useAuth();
+  const { user, tenant, logout, isUltraAdmin, refresh } = useAuth();
   const showTrocarAcademia =
     Boolean(user?.canSwitchTenant) || (user?.memberships?.length ?? 0) > 1;
   const [openMenu, setOpenMenu] = useState(false);

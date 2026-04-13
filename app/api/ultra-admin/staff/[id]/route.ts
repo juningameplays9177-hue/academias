@@ -81,7 +81,8 @@ export async function PATCH(request: Request, ctx: Ctx) {
   });
 
   const fresh = (await readDatabase()).users.find((u) => u.id === id)!;
-  const { password: _p, ...safe } = fresh;
+  const { password, ...safe } = fresh;
+  void password;
   return NextResponse.json({ ok: true, user: safe });
 }
 

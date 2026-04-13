@@ -39,6 +39,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
   });
 
   const fresh = (await readDatabase()).professors.find((p) => p.id === id)!;
-  const { senhaPlataforma: _s, ...safe } = fresh;
+  const { senhaPlataforma, ...safe } = fresh;
+  void senhaPlataforma;
   return NextResponse.json({ ok: true, professor: safe });
 }

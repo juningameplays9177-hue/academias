@@ -21,10 +21,10 @@ export async function POST(request: Request) {
 
   const name = body.name?.trim() ?? "";
   const email = body.email?.trim().toLowerCase() ?? "";
-  const password = body.password ?? "";
+  const passwordPlain = body.password ?? "";
   const role = body.role;
 
-  if (name.length < 2 || !email || password.length < 6) {
+  if (name.length < 2 || !email || passwordPlain.length < 6) {
     return NextResponse.json(
       { error: "Nome, e-mail válido e senha (mín. 6) são obrigatórios." },
       { status: 400 },
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
   const novo: AuthUserRecord = {
     id: `usr-${crypto.randomUUID()}`,
     email,
-    password,
+    password: passwordPlain,
     name,
     role,
     academiaId,
@@ -82,6 +82,7 @@ export async function POST(request: Request) {
     draft.users.push(novo);
   });
 
-  const { password: _p, ...safe } = novo;
+  const { password, ...safe } = novo;
+  void password;
   return NextResponse.json({ ok: true, user: safe });
 }
