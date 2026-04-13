@@ -317,6 +317,20 @@ export async function mutateDatabase<T>(
   return result;
 }
 
+/**
+ * Só leitura de `data/platform.json` — sem `mkdir`, migrações nem seed.
+ * Usado pelo `proxy.ts` para não bloquear nem escrever disco a cada request
+ * (comportamento que em serverless podia estourar tempo e virar 503 genérico).
+ */
+export async function readPlatformRegistryForProxy(): Promise<PlatformRegistry | null> {
+  try {
+    const raw = await fs.readFile(PLATFORM_PATH, "utf-8");
+    return JSON.parse(raw) as PlatformRegistry;
+  } catch {
+    return null;
+  }
+}
+
 /** Lê só o cadastro global (academias + ultra), sem carregar tenants. */
 export async function readPlatformRegistry(): Promise<PlatformRegistry> {
   await ensureDirs();

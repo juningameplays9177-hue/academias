@@ -4,7 +4,7 @@ import {
   decodeSessionPayload,
 } from "@/lib/auth/session-cookie";
 import { TENANT_COOKIE_NAME } from "@/lib/auth/tenant-cookie";
-import { readPlatformRegistry } from "@/lib/db/file-store";
+import { readPlatformRegistryForProxy } from "@/lib/db/file-store";
 import type { PlatformRegistry } from "@/lib/db/types";
 import { isAcademiaPlataformaDesligada } from "@/lib/platform/academia-access";
 import { isSitePublicOff } from "@/lib/platform/site-public-off";
@@ -57,15 +57,10 @@ function pathNeedsTenantCookie(pathname: string): boolean {
 }
 
 /**
- * Lê só `data/platform.json` (sem mesclar tenants), evitando `fetch` para a própria origem
- * no proxy — isso podia travar o worker em dev e gerar 503/timeouts.
+ * Leitura leve: sem migrações/seed (isso fica em `readPlatformRegistry` nas rotas API).
  */
 async function loadPlatformOnce(): Promise<PlatformRegistry | null> {
-  try {
-    return await readPlatformRegistry();
-  } catch {
-    return null;
-  }
+  return readPlatformRegistryForProxy();
 }
 
 export async function proxy(request: NextRequest) {
