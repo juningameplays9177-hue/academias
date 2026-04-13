@@ -86,7 +86,9 @@ export async function proxy(request: NextRequest) {
     if (
       pathname.startsWith("/api/auth/login") ||
       pathname.startsWith("/api/auth/register") ||
-      pathname === "/api/auth/logout"
+      pathname === "/api/auth/logout" ||
+      pathname === "/api/auth/me" ||
+      pathname.startsWith("/api/auth/select-tenant")
     ) {
       return NextResponse.next();
     }
