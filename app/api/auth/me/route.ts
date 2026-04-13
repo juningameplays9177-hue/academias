@@ -8,7 +8,7 @@ import {
   TENANT_COOKIE_NAME,
   tenantCookieOptions,
 } from "@/lib/auth/tenant-cookie";
-import { readDatabase } from "@/lib/db/file-store";
+import { readPlatformRegistry } from "@/lib/db/file-store";
 import { recordToTenantAcademia } from "@/lib/tenant/branding";
 
 const TENANT_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
@@ -19,16 +19,16 @@ export async function GET() {
   const session = token ? decodeSessionPayload(token) : null;
   const tenantCookieRaw =
     cookieStore.get(TENANT_COOKIE_NAME)?.value?.trim() || null;
-  const db = await readDatabase();
+  const platform = await readPlatformRegistry();
 
   let academia =
-    tenantCookieRaw && db.academias.length
-      ? (db.academias.find((a) => a.id === tenantCookieRaw) ?? null)
+    tenantCookieRaw && platform.academias.length
+      ? (platform.academias.find((a) => a.id === tenantCookieRaw) ?? null)
       : null;
 
-  if (!academia && tenantCookieRaw && db.academias.length) {
+  if (!academia && tenantCookieRaw && platform.academias.length) {
     const s = tenantCookieRaw.toLowerCase();
-    academia = db.academias.find((a) => a.slug.toLowerCase() === s) ?? null;
+    academia = platform.academias.find((a) => a.slug.toLowerCase() === s) ?? null;
     if (academia && academia.id !== tenantCookieRaw) {
       cookieStore.set(
         TENANT_COOKIE_NAME,

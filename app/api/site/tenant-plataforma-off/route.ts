@@ -5,7 +5,7 @@ import {
   decodeSessionPayload,
 } from "@/lib/auth/session-cookie";
 import { TENANT_COOKIE_NAME } from "@/lib/auth/tenant-cookie";
-import { readDatabase } from "@/lib/db/file-store";
+import { readPlatformRegistry } from "@/lib/db/file-store";
 import { isAcademiaPlataformaDesligada } from "@/lib/platform/academia-access";
 
 /**
@@ -22,8 +22,8 @@ export async function GET() {
     return NextResponse.json({ plataformaDesligada: false });
   }
 
-  const db = await readDatabase();
+  const platform = await readPlatformRegistry();
   return NextResponse.json({
-    plataformaDesligada: isAcademiaPlataformaDesligada(db, tenantId),
+    plataformaDesligada: isAcademiaPlataformaDesligada(platform, tenantId),
   });
 }
