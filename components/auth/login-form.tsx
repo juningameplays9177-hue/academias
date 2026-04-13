@@ -7,8 +7,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLock, faEnvelope } from "@fortawesome/free-solid-svg-icons";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/contexts/toast-context";
-import { DEMO_PASSWORD } from "@/lib/db/seed";
-
 type Props = {
   initialEmail?: string;
 };
@@ -178,34 +176,6 @@ export function LoginForm({ initialEmail = "" }: Props) {
       >
         {submitting ? "Validando…" : "Entrar"}
       </Button>
-
-      <div className="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-3 text-xs text-neutral-700">
-        <p className="font-semibold text-neutral-900">Ambiente demo</p>
-        <ul className="mt-2 space-y-1">
-          <li>
-            <span className="font-medium text-neutral-950">admin@academia.com</span>
-            {" · "}
-            <span className="font-medium text-neutral-950">
-              professor@academia.com
-            </span>
-            {" · "}
-            <span className="font-medium text-neutral-950">aluno@academia.com</span>
-          </li>
-          <li>
-            <span className="font-medium text-neutral-950">multi@tenant.demo</span>
-            {" — duas academias (mesma senha) · "}
-            <code className="rounded bg-neutral-900 px-1.5 py-0.5 font-mono text-[11px] text-orange-200">
-              123456
-            </code>
-          </li>
-          <li className="text-neutral-600">
-            Senha padrão (demais contas demo):{" "}
-            <code className="rounded bg-neutral-900 px-1.5 py-0.5 font-mono text-[11px] text-orange-200">
-              {DEMO_PASSWORD}
-            </code>
-          </li>
-        </ul>
-      </div>
     </form>
   );
 }
