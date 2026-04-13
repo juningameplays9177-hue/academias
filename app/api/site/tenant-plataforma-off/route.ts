@@ -9,7 +9,7 @@ import { readDatabase } from "@/lib/db/file-store";
 import { isAcademiaPlataformaDesligada } from "@/lib/platform/academia-access";
 
 /**
- * Usado pelo middleware: tenant atual está com plataforma suspensa?
+ * Compatível com clientes que consultam o status; o proxy lê `platform.json` diretamente.
  * Ultra Admin nunca é bloqueado por este flag.
  */
 export async function GET() {

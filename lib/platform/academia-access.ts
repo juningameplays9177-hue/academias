@@ -2,7 +2,7 @@ import type { AppDatabase } from "@/lib/db/types";
 
 /** Unidade com acesso à plataforma (painéis + APIs tenant) suspenso pelo Ultra — não confundir com `status: inativa`. */
 export function isAcademiaPlataformaDesligada(
-  db: AppDatabase,
+  db: Pick<AppDatabase, "academias">,
   academiaId: string | null | undefined,
 ): boolean {
   if (!academiaId) return false;

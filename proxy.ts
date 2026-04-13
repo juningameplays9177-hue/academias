@@ -4,6 +4,10 @@ import {
   decodeSessionPayload,
 } from "@/lib/auth/session-cookie";
 import { TENANT_COOKIE_NAME } from "@/lib/auth/tenant-cookie";
+import { readPlatformRegistry } from "@/lib/db/file-store";
+import type { PlatformRegistry } from "@/lib/db/types";
+import { isAcademiaPlataformaDesligada } from "@/lib/platform/academia-access";
+import { isSitePublicOff } from "@/lib/platform/site-public-off";
 import { homePathForRole } from "@/lib/rbac/home-path";
 import { canAccessPath, canUseAdminApi } from "@/lib/rbac/route-guards";
 import type { RoleId } from "@/lib/rbac/roles";
@@ -53,34 +57,19 @@ function pathNeedsTenantCookie(pathname: string): boolean {
   );
 }
 
-async function fetchSitePublicOff(request: NextRequest): Promise<boolean> {
+/**
+ * Lê só `data/platform.json` (sem mesclar tenants), evitando `fetch` para a própria origem
+ * no proxy — isso podia travar o worker em dev e gerar 503/timeouts.
+ */
+async function loadPlatformOnce(): Promise<PlatformRegistry | null> {
   try {
-    const url = new URL("/api/site/public-status", request.nextUrl.origin);
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) return false;
-    const j = (await res.json()) as { sitePublicoDesligado?: boolean };
-    return Boolean(j.sitePublicoDesligado);
+    return await readPlatformRegistry();
   } catch {
-    return false;
+    return null;
   }
 }
 
-async function fetchTenantPlataformaOff(request: NextRequest): Promise<boolean> {
-  try {
-    const url = new URL("/api/site/tenant-plataforma-off", request.nextUrl.origin);
-    const res = await fetch(url, {
-      headers: { cookie: request.headers.get("cookie") ?? "" },
-      cache: "no-store",
-    });
-    if (!res.ok) return false;
-    const j = (await res.json()) as { plataformaDesligada?: boolean };
-    return Boolean(j.plataformaDesligada);
-  } catch {
-    return false;
-  }
-}
-
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const session = token ? decodeSessionPayload(token) : null;
@@ -91,7 +80,8 @@ export async function middleware(request: NextRequest) {
   if (pathname === "/api/site/tenant-plataforma-off") return NextResponse.next();
   if (pathname === "/manutencao") return NextResponse.next();
 
-  const publicOff = await fetchSitePublicOff(request);
+  const p = await loadPlatformOnce();
+  const publicOff = p ? isSitePublicOff(p) : false;
   const isUltra = session?.role === "ultra_admin";
 
   if (publicOff && !isUltra) {
@@ -161,11 +151,12 @@ export async function middleware(request: NextRequest) {
       session &&
       session.role !== "ultra_admin" &&
       tenantId &&
+      p &&
       (pathname.startsWith("/api/admin") ||
         pathname.startsWith("/api/professor") ||
         pathname.startsWith("/api/aluno"));
     if (needsTenantPlataformaCheck) {
-      const tenantOff = await fetchTenantPlataformaOff(request);
+      const tenantOff = isAcademiaPlataformaDesligada(p, tenantId);
       if (tenantOff) {
         return NextResponse.json(
           {
@@ -223,9 +214,10 @@ export async function middleware(request: NextRequest) {
     session &&
     session.role !== "ultra_admin" &&
     tenantId &&
+    p &&
     pathNeedsTenantCookie(pathname);
   if (tenantPagesSuspended) {
-    const tenantOff = await fetchTenantPlataformaOff(request);
+    const tenantOff = isAcademiaPlataformaDesligada(p, tenantId);
     if (tenantOff) {
       const url = request.nextUrl.clone();
       url.pathname = "/manutencao-unidade";
