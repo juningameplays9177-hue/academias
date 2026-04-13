@@ -55,16 +55,16 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             key={t.id}
             className={cn(
               "pointer-events-auto flex gap-3 rounded-xl border border-border bg-card/95 p-3 shadow-lg backdrop-blur animate-fade-up",
-              t.type === "success" && "border-orange-500/35",
-              t.type === "error" && "border-orange-700/50",
+              t.type === "success" && "border-accent/35",
+              t.type === "error" && "border-accent/55",
             )}
             role="status"
           >
             <div className="mt-0.5 text-accent">
               {t.type === "success" ? (
-                <FontAwesomeIcon icon={faCircleCheck} className="text-orange-500 dark:text-orange-400" />
+                <FontAwesomeIcon icon={faCircleCheck} className="text-accent" />
               ) : t.type === "error" ? (
-                <FontAwesomeIcon icon={faTriangleExclamation} className="text-orange-600 dark:text-orange-400" />
+                <FontAwesomeIcon icon={faTriangleExclamation} className="text-accent" />
               ) : (
                 <span className="block h-2 w-2 rounded-full bg-accent" />
               )}

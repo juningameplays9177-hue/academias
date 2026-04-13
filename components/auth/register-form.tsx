@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/contexts/toast-context";
 
 const inputShell =
-  "w-full rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] py-3 text-sm text-[#0B0F1A] shadow-sm outline-none transition placeholder:text-[#6B7280] focus:border-[#3B82F6] focus:bg-white focus:ring-2 focus:ring-[#3B82F6]/20";
+  "w-full rounded-xl border border-border bg-background py-3 text-sm text-foreground shadow-sm outline-none transition placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/25 dark:bg-card";
 
 type Props = {
   onRegistered: (email: string) => void;
@@ -94,21 +94,21 @@ export function RegisterForm({ onRegistered }: Props) {
   return (
     <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
       <div>
-        <h2 className="text-xl font-semibold tracking-tight text-[#0B0F1A]">
+        <h2 className="text-xl font-semibold tracking-tight text-foreground">
           Criar conta
         </h2>
-        <p className="mt-2 text-sm leading-relaxed text-[#374151]">
-          Você entra como <strong className="font-semibold text-[#1E3A8A]">aluno</strong>{" "}
+        <p className="mt-2 text-sm leading-relaxed text-muted">
+          Você entra como <strong className="font-semibold text-accent">aluno</strong>{" "}
           no painel. A recepção confirma documentos depois.
         </p>
       </div>
 
       <label className="block text-sm" htmlFor="reg-nome">
-        <span className="font-semibold text-[#374151]">Nome completo</span>
+        <span className="font-semibold text-foreground">Nome completo</span>
         <div className="relative mt-1.5">
           <FontAwesomeIcon
             icon={faUser}
-            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B7280]"
+            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
             aria-hidden
           />
           <input
@@ -126,11 +126,11 @@ export function RegisterForm({ onRegistered }: Props) {
       </label>
 
       <label className="block text-sm" htmlFor="reg-email">
-        <span className="font-semibold text-[#374151]">E-mail</span>
+        <span className="font-semibold text-foreground">E-mail</span>
         <div className="relative mt-1.5">
           <FontAwesomeIcon
             icon={faEnvelope}
-            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B7280]"
+            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
             aria-hidden
           />
           <input
@@ -148,11 +148,11 @@ export function RegisterForm({ onRegistered }: Props) {
       </label>
 
       <label className="block text-sm" htmlFor="reg-senha">
-        <span className="font-semibold text-[#374151]">Senha</span>
+        <span className="font-semibold text-foreground">Senha</span>
         <div className="relative mt-1.5">
           <FontAwesomeIcon
             icon={faLock}
-            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B7280]"
+            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
             aria-hidden
           />
           <input
@@ -169,7 +169,7 @@ export function RegisterForm({ onRegistered }: Props) {
           />
           <button
             type="button"
-            className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-[#6B7280] transition hover:bg-[#E5E7EB]/80 hover:text-[#0B0F1A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-[#3B82F6]"
+            className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted transition hover:bg-accent-soft hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-accent"
             onClick={() => setShowSenha((v) => !v)}
             aria-label={showSenha ? "Ocultar senha" : "Mostrar senha"}
           >
@@ -179,11 +179,11 @@ export function RegisterForm({ onRegistered }: Props) {
       </label>
 
       <label className="block text-sm" htmlFor="reg-senha2">
-        <span className="font-semibold text-[#374151]">Confirmar senha</span>
+        <span className="font-semibold text-foreground">Confirmar senha</span>
         <div className="relative mt-1.5">
           <FontAwesomeIcon
             icon={faLock}
-            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B7280]"
+            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
             aria-hidden
           />
           <input
@@ -200,7 +200,7 @@ export function RegisterForm({ onRegistered }: Props) {
           />
           <button
             type="button"
-            className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-[#6B7280] transition hover:bg-[#E5E7EB]/80 hover:text-[#0B0F1A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-[#3B82F6]"
+            className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted transition hover:bg-accent-soft hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-accent"
             onClick={() => setShowConfirmar((v) => !v)}
             aria-label={showConfirmar ? "Ocultar confirmação de senha" : "Mostrar confirmação de senha"}
           >
@@ -213,11 +213,11 @@ export function RegisterForm({ onRegistered }: Props) {
       </label>
 
       <label className="block text-sm" htmlFor="reg-cpf">
-        <span className="font-semibold text-[#374151]">CPF</span>
+        <span className="font-semibold text-foreground">CPF</span>
         <div className="relative mt-1.5">
           <FontAwesomeIcon
             icon={faIdCard}
-            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B7280]"
+            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
             aria-hidden
           />
           <input
@@ -235,11 +235,11 @@ export function RegisterForm({ onRegistered }: Props) {
       </label>
 
       <label className="block text-sm" htmlFor="reg-celular">
-        <span className="font-semibold text-[#374151]">Celular (WhatsApp)</span>
+        <span className="font-semibold text-foreground">Celular (WhatsApp)</span>
         <div className="relative mt-1.5">
           <FontAwesomeIcon
             icon={faPhone}
-            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B7280]"
+            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
             aria-hidden
           />
           <input
@@ -259,7 +259,7 @@ export function RegisterForm({ onRegistered }: Props) {
 
       <Button
         type="submit"
-        className="mt-3 w-full rounded-xl border-0 bg-gradient-to-r from-[#3B82F6] via-[#22D3EE] to-[#FACC15] py-3 text-sm font-semibold text-[#0B0F1A] shadow-lg shadow-[#3B82F6]/25 transition duration-200 hover:brightness-[1.03] hover:shadow-xl hover:shadow-[#22D3EE]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#22D3EE] disabled:pointer-events-none disabled:opacity-55"
+        className="mt-3 w-full rounded-xl py-3 text-sm font-semibold"
         disabled={submitting}
         aria-busy={submitting}
       >

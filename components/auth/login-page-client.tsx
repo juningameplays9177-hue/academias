@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useState } from "react";
 import { LoginForm } from "@/components/auth/login-form";
@@ -18,10 +19,25 @@ export function LoginPageClient() {
   }, []);
 
   return (
-    <div className="w-full max-w-md overflow-hidden rounded-3xl border border-white/10 bg-white text-[#0B0F1A] shadow-[0_25px_60px_-12px_rgba(0,0,0,0.55),0_0_0_1px_rgba(255,255,255,0.06)_inset] ring-1 ring-black/5">
-      <div className="border-b border-[#E5E7EB] bg-gradient-to-b from-[#F9FAFB] to-white px-5 pt-6">
+    <div className="w-full max-w-md overflow-hidden rounded-3xl border border-border bg-card text-foreground shadow-xl ring-1 ring-border/60">
+      <div className="border-b border-border bg-gradient-to-b from-card to-background px-5 pt-6">
+        <div className="mb-5 flex flex-col items-center gap-2">
+          <div className="rounded-2xl bg-tenant-shell-card px-4 py-3 shadow-md ring-1 ring-tenant-shell-border/40 sm:px-5 sm:py-3.5">
+            <Image
+              src="/branding/impulso-logo.png"
+              alt="Impulso"
+              width={260}
+              height={78}
+              className="h-auto w-40 sm:w-44"
+              priority
+            />
+          </div>
+          <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted">
+            Impulso
+          </span>
+        </div>
         <div
-          className="flex rounded-2xl bg-[#F3F4F6] p-1"
+          className="flex rounded-2xl bg-accent-soft/50 p-1 dark:bg-accent-soft/30"
           role="tablist"
           aria-label="Login ou cadastro"
         >
@@ -34,14 +50,14 @@ export function LoginPageClient() {
             className={cn(
               "relative flex-1 overflow-hidden rounded-xl px-4 py-3 pb-3.5 text-sm font-semibold transition-all duration-200",
               tab === "login"
-                ? "bg-white text-[#0B0F1A] shadow-md shadow-[#1E3A8A]/10"
-                : "text-[#374151] hover:text-[#0B0F1A]",
+                ? "bg-background text-foreground shadow-sm ring-1 ring-border/60 dark:bg-tenant-shell-card dark:ring-tenant-shell-border/40"
+                : "text-muted hover:text-foreground",
             )}
             onClick={() => setTab("login")}
           >
             {tab === "login" ? (
               <span
-                className="absolute inset-x-4 bottom-1 h-1 rounded-full bg-gradient-to-r from-[#3B82F6] via-[#22D3EE] to-[#FACC15]"
+                className="absolute inset-x-4 bottom-1 h-1 rounded-full bg-accent"
                 aria-hidden
               />
             ) : null}
@@ -56,14 +72,14 @@ export function LoginPageClient() {
             className={cn(
               "relative flex-1 overflow-hidden rounded-xl px-4 py-3 pb-3.5 text-sm font-semibold transition-all duration-200",
               tab === "cadastro"
-                ? "bg-white text-[#0B0F1A] shadow-md shadow-[#1E3A8A]/10"
-                : "text-[#374151] hover:text-[#0B0F1A]",
+                ? "bg-background text-foreground shadow-sm ring-1 ring-border/60 dark:bg-tenant-shell-card dark:ring-tenant-shell-border/40"
+                : "text-muted hover:text-foreground",
             )}
             onClick={() => setTab("cadastro")}
           >
             {tab === "cadastro" ? (
               <span
-                className="absolute inset-x-4 bottom-1 h-1 rounded-full bg-gradient-to-r from-[#3B82F6] via-[#22D3EE] to-[#FACC15]"
+                className="absolute inset-x-4 bottom-1 h-1 rounded-full bg-accent"
                 aria-hidden
               />
             ) : null}
@@ -84,14 +100,14 @@ export function LoginPageClient() {
         )}
       </div>
 
-      <p className="border-t border-[#E5E7EB] bg-[#F9FAFB]/80 px-5 py-4 text-center text-xs leading-relaxed text-[#374151] sm:px-7 sm:text-sm">
+      <p className="border-t border-border bg-card/80 px-5 py-4 text-center text-xs leading-relaxed text-muted sm:px-7 sm:text-sm dark:bg-card/60">
         <Link
           href="/select-academia"
-          className="font-semibold text-[#1E3A8A] underline decoration-[#3B82F6]/40 underline-offset-2 transition hover:text-[#3B82F6] hover:decoration-[#22D3EE]"
+          className="font-semibold text-accent underline decoration-accent/40 underline-offset-2 transition hover:brightness-110 hover:decoration-accent"
         >
           Escolher outra academia
         </Link>
-        <span className="text-[#6B7280]">
+        <span className="text-muted">
           {" "}
           — lista de unidades, entrar por outro link ou trocar de unidade antes de
           acessar.
