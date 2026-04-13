@@ -10,7 +10,7 @@ import { isAcademiaPlataformaDesligada } from "@/lib/platform/academia-access";
 import { isSitePublicOff } from "@/lib/platform/site-public-off";
 import { homePathForRole } from "@/lib/rbac/home-path";
 import { canAccessPath, canUseAdminApi } from "@/lib/rbac/route-guards";
-import type { RoleId } from "@/lib/rbac/roles";
+import { isRoleId, type RoleId } from "@/lib/rbac/roles";
 
 const PUBLIC_PATHS = new Set([
   "/login",
@@ -36,6 +36,7 @@ function isPublicAcademiaSitePath(pathname: string): boolean {
 
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_PATHS.has(pathname)) return true;
+  if (pathname === "/select-academia") return true;
   if (isPublicAcademiaSitePath(pathname)) return true;
   if (pathname.startsWith("/_next")) return true;
   if (pathname.startsWith("/favicon")) return true;
@@ -107,8 +108,11 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!publicOff && pathname === "/") {
-    const dest = session ? "/select-academia" : "/login";
-    return NextResponse.redirect(new URL(dest, request.url));
+    if (session && !session.needsTenantSelection) {
+      const role: RoleId = isRoleId(session.role) ? session.role : "aluno";
+      return NextResponse.redirect(new URL(homePathForRole(role), request.url));
+    }
+    return NextResponse.redirect(new URL("/select-academia", request.url));
   }
 
   if (pathname === "/login" && session?.needsTenantSelection) {

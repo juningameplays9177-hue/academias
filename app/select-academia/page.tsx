@@ -13,11 +13,7 @@ export default async function SelectAcademiaPage() {
   const token = jar.get(SESSION_COOKIE_NAME)?.value;
   const session = token ? decodeSessionPayload(token) : null;
 
-  if (!session) {
-    redirect("/login");
-  }
-
-  if (!session.needsTenantSelection) {
+  if (session && !session.needsTenantSelection) {
     const role = isRoleId(session.role) ? session.role : "aluno";
     redirect(homePathForRole(role));
   }
