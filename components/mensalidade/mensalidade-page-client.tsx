@@ -70,7 +70,7 @@ function payMessage(unidade: string, nomePlano: string, precoLabel: string) {
 }
 
 export function MensalidadePageClient() {
-  const { user, tenant } = useAuth();
+  const { user, tenant, loading: authLoading } = useAuth();
   const [plans, setPlans] = useState<PublicPlan[]>([]);
   const [plansLoaded, setPlansLoaded] = useState(false);
   /** Atualiza só o telefone a partir do banco (sem disparar loading global do auth). */
@@ -134,7 +134,21 @@ export function MensalidadePageClient() {
     [tenant],
   );
 
-  const backHref = user ? homePathForRole(user.role) : "/select-academia";
+  const { backHref, backLabel } = useMemo(() => {
+    if (authLoading) {
+      return { backHref: undefined as string | undefined, backLabel: "Voltar ao painel" };
+    }
+    if (!user) {
+      return { backHref: "/select-academia", backLabel: "Voltar ao painel" };
+    }
+    if (user.role === "aluno") {
+      return { backHref: "/aluno", backLabel: "Voltar à Minha conta" };
+    }
+    return {
+      backHref: homePathForRole(user.role),
+      backLabel: "Voltar ao painel",
+    };
+  }, [user, authLoading]);
   const unidade = tenant?.nome ?? "sua academia";
 
   const telefoneWhatsApp =
@@ -148,13 +162,20 @@ export function MensalidadePageClient() {
   return (
     <div className="min-h-screen bg-tenant-shell-bg px-4 py-8 text-tenant-shell-fg">
       <div className="mx-auto max-w-6xl">
-        <Link
-          href={backHref}
-          className="inline-flex items-center gap-2 text-sm text-neutral-400 transition hover:text-tenant-shell-fg"
-        >
-          <FontAwesomeIcon icon={faArrowLeft} className="text-xs" />
-          Voltar ao painel
-        </Link>
+        {backHref ? (
+          <Link
+            href={backHref}
+            className="inline-flex items-center gap-2 text-sm text-neutral-400 transition hover:text-tenant-shell-fg"
+          >
+            <FontAwesomeIcon icon={faArrowLeft} className="text-xs" />
+            {backLabel}
+          </Link>
+        ) : (
+          <span className="inline-flex items-center gap-2 text-sm text-neutral-500">
+            <FontAwesomeIcon icon={faArrowLeft} className="text-xs opacity-50" />
+            Carregando…
+          </span>
+        )}
         <h1 className="mt-6 text-2xl font-semibold tracking-tight sm:text-3xl">
           Mensalidade — planos
         </h1>
