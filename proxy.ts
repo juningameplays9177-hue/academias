@@ -81,6 +81,7 @@ export async function proxy(request: NextRequest) {
 
   if (publicOff && !isUltra) {
     if (pathname === "/login") return NextResponse.next();
+    if (pathname === "/select-academia") return NextResponse.next();
     if (pathname === "/manutencao-unidade") return NextResponse.next();
     if (
       pathname.startsWith("/api/auth/login") ||
@@ -119,7 +120,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/select-academia", request.url));
   }
   if (pathname === "/login" && session) {
-    return NextResponse.redirect(new URL(homePathForRole(session.role), request.url));
+    const role: RoleId = isRoleId(session.role) ? session.role : "aluno";
+    return NextResponse.redirect(new URL(homePathForRole(role), request.url));
   }
 
   if (isPublicPath(pathname)) {

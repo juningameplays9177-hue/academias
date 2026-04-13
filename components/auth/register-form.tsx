@@ -94,10 +94,7 @@ export function RegisterForm({ onRegistered }: Props) {
   return (
     <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
       <div>
-        <h2 className="text-xl font-semibold tracking-tight text-foreground">
-          Criar conta
-        </h2>
-        <p className="mt-2 text-sm leading-relaxed text-muted">
+        <p className="text-sm leading-relaxed text-muted">
           Você entra como <strong className="font-semibold text-accent">aluno</strong>{" "}
           no painel. A recepção confirma documentos depois.
         </p>

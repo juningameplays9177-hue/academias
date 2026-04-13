@@ -100,10 +100,7 @@ export function LoginForm({ initialEmail = "" }: Props) {
   return (
     <form onSubmit={(e) => void handleSubmit(e)} className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold tracking-tight text-foreground">
-          Entrar
-        </h2>
-        <p className="mt-2 text-sm leading-relaxed text-muted">
+        <p className="text-sm leading-relaxed text-muted">
           Digite o e-mail e a senha vinculados à sua conta na academia.
         </p>
         {unidadeSlug ? (
