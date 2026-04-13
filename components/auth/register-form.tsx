@@ -1,11 +1,22 @@
 "use client";
 
 import { useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faUser,
+  faEnvelope,
+  faLock,
+  faIdCard,
+  faPhone,
+  faEye,
+  faEyeSlash,
+  faSpinner,
+} from "@fortawesome/free-solid-svg-icons";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/contexts/toast-context";
 
-const fieldClass =
-  "w-full rounded-lg border border-neutral-400 bg-white px-3 py-2.5 text-sm text-neutral-900 shadow-inner outline-none placeholder:text-neutral-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/30";
+const inputShell =
+  "w-full rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] py-3 text-sm text-[#0B0F1A] shadow-sm outline-none transition placeholder:text-[#6B7280] focus:border-[#3B82F6] focus:bg-white focus:ring-2 focus:ring-[#3B82F6]/20";
 
 type Props = {
   onRegistered: (email: string) => void;
@@ -20,6 +31,8 @@ export function RegisterForm({ onRegistered }: Props) {
   const [cpf, setCpf] = useState("");
   const [celular, setCelular] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showSenha, setShowSenha] = useState(false);
+  const [showConfirmar, setShowConfirmar] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -81,113 +94,183 @@ export function RegisterForm({ onRegistered }: Props) {
   return (
     <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
       <div>
-        <h2 className="text-lg font-semibold text-neutral-950">Criar conta</h2>
-        <p className="mt-1 text-sm text-neutral-600">
-          Você entra como <strong className="text-neutral-800">aluno</strong> no
-          painel. A recepção confirma documentos depois.
+        <h2 className="text-xl font-semibold tracking-tight text-[#0B0F1A]">
+          Criar conta
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-[#374151]">
+          Você entra como <strong className="font-semibold text-[#1E3A8A]">aluno</strong>{" "}
+          no painel. A recepção confirma documentos depois.
         </p>
       </div>
 
       <label className="block text-sm" htmlFor="reg-nome">
-        <span className="font-medium text-neutral-800">Nome completo</span>
-        <input
-          id="reg-nome"
-          name="nome"
-          type="text"
-          autoComplete="name"
-          required
-          value={nome}
-          onChange={(e) => setNome(e.target.value)}
-          className={`mt-1 ${fieldClass}`}
-          placeholder="Como no documento"
-        />
+        <span className="font-semibold text-[#374151]">Nome completo</span>
+        <div className="relative mt-1.5">
+          <FontAwesomeIcon
+            icon={faUser}
+            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B7280]"
+            aria-hidden
+          />
+          <input
+            id="reg-nome"
+            name="nome"
+            type="text"
+            autoComplete="name"
+            required
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            className={`${inputShell} pl-11 pr-4`}
+            placeholder="Como no documento"
+          />
+        </div>
       </label>
 
       <label className="block text-sm" htmlFor="reg-email">
-        <span className="font-medium text-neutral-800">E-mail</span>
-        <input
-          id="reg-email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className={`mt-1 ${fieldClass}`}
-          placeholder="voce@email.com"
-        />
+        <span className="font-semibold text-[#374151]">E-mail</span>
+        <div className="relative mt-1.5">
+          <FontAwesomeIcon
+            icon={faEnvelope}
+            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B7280]"
+            aria-hidden
+          />
+          <input
+            id="reg-email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className={`${inputShell} pl-11 pr-4`}
+            placeholder="voce@email.com"
+          />
+        </div>
       </label>
 
       <label className="block text-sm" htmlFor="reg-senha">
-        <span className="font-medium text-neutral-800">Senha</span>
-        <input
-          id="reg-senha"
-          name="senha"
-          type="password"
-          autoComplete="new-password"
-          required
-          minLength={6}
-          value={senha}
-          onChange={(e) => setSenha(e.target.value)}
-          className={`mt-1 ${fieldClass}`}
-          placeholder="Mínimo 6 caracteres"
-        />
+        <span className="font-semibold text-[#374151]">Senha</span>
+        <div className="relative mt-1.5">
+          <FontAwesomeIcon
+            icon={faLock}
+            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B7280]"
+            aria-hidden
+          />
+          <input
+            id="reg-senha"
+            name="senha"
+            type={showSenha ? "text" : "password"}
+            autoComplete="new-password"
+            required
+            minLength={6}
+            value={senha}
+            onChange={(e) => setSenha(e.target.value)}
+            className={`${inputShell} pl-11 pr-12`}
+            placeholder="Mínimo 6 caracteres"
+          />
+          <button
+            type="button"
+            className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-[#6B7280] transition hover:bg-[#E5E7EB]/80 hover:text-[#0B0F1A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-[#3B82F6]"
+            onClick={() => setShowSenha((v) => !v)}
+            aria-label={showSenha ? "Ocultar senha" : "Mostrar senha"}
+          >
+            <FontAwesomeIcon icon={showSenha ? faEyeSlash : faEye} className="h-4 w-4" />
+          </button>
+        </div>
       </label>
 
       <label className="block text-sm" htmlFor="reg-senha2">
-        <span className="font-medium text-neutral-800">Confirmar senha</span>
-        <input
-          id="reg-senha2"
-          name="confirmarSenha"
-          type="password"
-          autoComplete="new-password"
-          required
-          minLength={6}
-          value={confirmarSenha}
-          onChange={(e) => setConfirmarSenha(e.target.value)}
-          className={`mt-1 ${fieldClass}`}
-          placeholder="Digite a senha novamente"
-        />
+        <span className="font-semibold text-[#374151]">Confirmar senha</span>
+        <div className="relative mt-1.5">
+          <FontAwesomeIcon
+            icon={faLock}
+            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B7280]"
+            aria-hidden
+          />
+          <input
+            id="reg-senha2"
+            name="confirmarSenha"
+            type={showConfirmar ? "text" : "password"}
+            autoComplete="new-password"
+            required
+            minLength={6}
+            value={confirmarSenha}
+            onChange={(e) => setConfirmarSenha(e.target.value)}
+            className={`${inputShell} pl-11 pr-12`}
+            placeholder="Digite a senha novamente"
+          />
+          <button
+            type="button"
+            className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-[#6B7280] transition hover:bg-[#E5E7EB]/80 hover:text-[#0B0F1A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-[#3B82F6]"
+            onClick={() => setShowConfirmar((v) => !v)}
+            aria-label={showConfirmar ? "Ocultar confirmação de senha" : "Mostrar confirmação de senha"}
+          >
+            <FontAwesomeIcon
+              icon={showConfirmar ? faEyeSlash : faEye}
+              className="h-4 w-4"
+            />
+          </button>
+        </div>
       </label>
 
       <label className="block text-sm" htmlFor="reg-cpf">
-        <span className="font-medium text-neutral-800">CPF</span>
-        <input
-          id="reg-cpf"
-          name="cpf"
-          inputMode="numeric"
-          autoComplete="off"
-          required
-          value={cpf}
-          onChange={(e) => setCpf(e.target.value)}
-          className={`mt-1 ${fieldClass}`}
-          placeholder="000.000.000-00"
-        />
+        <span className="font-semibold text-[#374151]">CPF</span>
+        <div className="relative mt-1.5">
+          <FontAwesomeIcon
+            icon={faIdCard}
+            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B7280]"
+            aria-hidden
+          />
+          <input
+            id="reg-cpf"
+            name="cpf"
+            inputMode="numeric"
+            autoComplete="off"
+            required
+            value={cpf}
+            onChange={(e) => setCpf(e.target.value)}
+            className={`${inputShell} pl-11 pr-4`}
+            placeholder="000.000.000-00"
+          />
+        </div>
       </label>
 
       <label className="block text-sm" htmlFor="reg-celular">
-        <span className="font-medium text-neutral-800">Celular (WhatsApp)</span>
-        <input
-          id="reg-celular"
-          name="celular"
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          required
-          value={celular}
-          onChange={(e) => setCelular(e.target.value)}
-          className={`mt-1 ${fieldClass}`}
-          placeholder="(11) 98765-4321"
-        />
+        <span className="font-semibold text-[#374151]">Celular (WhatsApp)</span>
+        <div className="relative mt-1.5">
+          <FontAwesomeIcon
+            icon={faPhone}
+            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B7280]"
+            aria-hidden
+          />
+          <input
+            id="reg-celular"
+            name="celular"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            required
+            value={celular}
+            onChange={(e) => setCelular(e.target.value)}
+            className={`${inputShell} pl-11 pr-4`}
+            placeholder="(11) 98765-4321"
+          />
+        </div>
       </label>
 
       <Button
         type="submit"
-        className="mt-2 w-full"
+        className="mt-3 w-full rounded-xl border-0 bg-gradient-to-r from-[#3B82F6] via-[#22D3EE] to-[#FACC15] py-3 text-sm font-semibold text-[#0B0F1A] shadow-lg shadow-[#3B82F6]/25 transition duration-200 hover:brightness-[1.03] hover:shadow-xl hover:shadow-[#22D3EE]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#22D3EE] disabled:pointer-events-none disabled:opacity-55"
         disabled={submitting}
         aria-busy={submitting}
       >
-        {submitting ? "Cadastrando…" : "Cadastrar"}
+        {submitting ? (
+          <>
+            <FontAwesomeIcon icon={faSpinner} className="h-4 w-4 animate-spin" aria-hidden />
+            Cadastrando…
+          </>
+        ) : (
+          "Cadastrar"
+        )}
       </Button>
     </form>
   );
