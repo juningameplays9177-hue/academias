@@ -9,7 +9,6 @@ import type { TenantMembership } from "@/lib/auth/session-cookie";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
 import { useToast } from "@/contexts/toast-context";
-import { useAuth } from "@/hooks/useAuth";
 import { homePathForRole } from "@/lib/rbac/home-path";
 import { isRoleId, type RoleId } from "@/lib/rbac/roles";
 import { paletteFromAcademyColors } from "@/lib/tenant/branding";
@@ -42,7 +41,6 @@ type PublicAcademia = {
 export function SelectAcademiaClient() {
   const router = useRouter();
   const { pushToast } = useToast();
-  const { refresh } = useAuth();
   const [choices, setChoices] = useState<TenantMembership[]>([]);
   const [publicAcademias, setPublicAcademias] = useState<PublicAcademia[]>([]);
   const [user, setUser] = useState<MeTenantChoices["user"] | null | undefined>(
@@ -112,6 +110,14 @@ export function SelectAcademiaClient() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (loading) return;
+    if (!user || user.needsTenantSelection) return;
+    const role: RoleId = isRoleId(user.role) ? user.role : "aluno";
+    router.replace(homePathForRole(role));
+    router.refresh();
+  }, [loading, user, router]);
 
   async function pick(academiaId: string) {
     setPicking(academiaId);
@@ -266,35 +272,8 @@ export function SelectAcademiaClient() {
   }
 
   if (user && !user.needsTenantSelection) {
-    const role: RoleId = isRoleId(user.role) ? user.role : "aluno";
-    const painel = homePathForRole(role);
     return (
-      <div className="mx-auto max-w-lg space-y-6 rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-center shadow-xl backdrop-blur">
-        <p className="text-sm text-neutral-400">
-          Você já está autenticado como{" "}
-          <span className="font-medium text-white">{user.name ?? user.email}</span>.
-        </p>
-        <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <Link
-            href={painel}
-            className={cn(
-              "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200",
-              "bg-accent text-white shadow-sm hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0",
-            )}
-          >
-            Ir para meu painel
-            <FontAwesomeIcon icon={faArrowRight} className="text-xs" />
-          </Link>
-          <Link
-            href="/site"
-            className={cn(
-              "inline-flex items-center justify-center gap-2 rounded-lg border border-white/20 bg-transparent px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10",
-            )}
-          >
-            Ver site institucional
-          </Link>
-        </div>
-      </div>
+      <p className="text-center text-sm text-neutral-500">Redirecionando…</p>
     );
   }
 

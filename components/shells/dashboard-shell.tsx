@@ -16,7 +16,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
 import { tenantTheme } from "@/lib/tenant/theme";
-import { academiaPublicSitePath } from "@/lib/routes/academia-public-path";
 
 export type DashboardNavItem = {
   href: string;
@@ -174,12 +173,6 @@ export function DashboardShell({
                 Trocar academia
               </button>
             ) : null}
-            <Link
-              href={tenant?.slug ? academiaPublicSitePath(tenant.slug) : "/site"}
-              className="transition hover:text-tenant-shell-fg"
-            >
-              Site
-            </Link>
             <button
               type="button"
               onClick={() => void logout()}
@@ -240,13 +233,6 @@ export function DashboardShell({
               >
                 <FontAwesomeIcon icon={faMoneyBillWave} className="w-4" />
                 Mensalidade
-              </Link>
-              <Link
-                href={tenant?.slug ? academiaPublicSitePath(tenant.slug) : "/site"}
-                className="rounded-lg px-3 py-2.5 text-neutral-200 hover:bg-white/5"
-                onClick={() => setOpenMenu(false)}
-              >
-                Ver site público
               </Link>
               {canSwitchTenant ? (
                 <button
