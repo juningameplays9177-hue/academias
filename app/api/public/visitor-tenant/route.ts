@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { TENANT_COOKIE_NAME, tenantCookieOptions } from "@/lib/auth/tenant-cookie";
-import { readDatabase } from "@/lib/db/file-store";
+import { readPlatformRegistry } from "@/lib/db/file-store";
 import { isAcademiaPlataformaDesligada } from "@/lib/platform/academia-access";
 import { recordToTenantAcademia } from "@/lib/tenant/branding";
 
@@ -9,15 +9,15 @@ const MAX_AGE = 60 * 60 * 24 * 30;
 
 export async function POST(request: Request) {
   const body = (await request.json()) as { academiaId?: string; slug?: string };
-  const db = await readDatabase();
+  const platform = await readPlatformRegistry();
 
-  let a = null as (typeof db.academias)[0] | null;
+  let a = null as (typeof platform.academias)[0] | null;
   const rawId = typeof body.academiaId === "string" ? body.academiaId.trim() : "";
   if (rawId) {
-    a = db.academias.find((x) => x.id === rawId) ?? null;
+    a = platform.academias.find((x) => x.id === rawId) ?? null;
   } else if (typeof body.slug === "string" && body.slug.trim()) {
     const s = body.slug.trim().toLowerCase();
-    a = db.academias.find((x) => x.slug.toLowerCase() === s) ?? null;
+    a = platform.academias.find((x) => x.slug.toLowerCase() === s) ?? null;
   }
 
   if (!a) {
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   if (a.status !== "ativo") {
     return NextResponse.json({ error: "Unidade inativa." }, { status: 400 });
   }
-  if (isAcademiaPlataformaDesligada(db, a.id)) {
+  if (isAcademiaPlataformaDesligada(platform, a.id)) {
     return NextResponse.json(
       { error: "Esta unidade está temporariamente indisponível no site." },
       { status: 503 },

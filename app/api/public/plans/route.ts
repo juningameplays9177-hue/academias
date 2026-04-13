@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { TENANT_COOKIE_NAME } from "@/lib/auth/tenant-cookie";
-import { readDatabase } from "@/lib/db/file-store";
+import { readPlatformRegistry, readTenantPlansForAcademia } from "@/lib/db/file-store";
 import { isAcademiaPlataformaDesligada } from "@/lib/platform/academia-access";
 
 /** Planos da unidade escolhida (cookie público ou vazio). */
@@ -11,12 +11,13 @@ export async function GET() {
   if (!tenantId) {
     return NextResponse.json({ plans: [] as const });
   }
-  const db = await readDatabase();
-  const a = db.academias.find((x) => x.id === tenantId);
-  if (!a || a.status !== "ativo" || isAcademiaPlataformaDesligada(db, tenantId)) {
+  const platform = await readPlatformRegistry();
+  const a = platform.academias.find((x) => x.id === tenantId);
+  if (!a || a.status !== "ativo" || isAcademiaPlataformaDesligada(platform, tenantId)) {
     return NextResponse.json({ plans: [] as const });
   }
-  const plans = db.plans
+  const rawPlans = await readTenantPlansForAcademia(tenantId);
+  const plans = rawPlans
     .filter((p) => p.academiaId === tenantId)
     .map((p) => ({
       id: p.id,

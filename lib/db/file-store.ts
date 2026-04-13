@@ -11,6 +11,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import type {
   AppDatabase,
+  PlanRecord,
   PlatformRegistry,
   TenantDatabase,
 } from "@/lib/db/types";
@@ -178,6 +179,16 @@ async function loadTenant(academiaId: string): Promise<TenantDatabase> {
       return emptyTenantDatabase();
     }
   }
+}
+
+/**
+ * Planos de uma única unidade, sem `readDatabase` (evita ler e fundir todos os tenants — causa de 503/timeout em APIs públicas).
+ */
+export async function readTenantPlansForAcademia(academiaId: string): Promise<PlanRecord[]> {
+  await ensureDirs();
+  await migrateFlatTenantJsonToSubfolders();
+  const t = await loadTenant(academiaId);
+  return t.plans ?? [];
 }
 
 async function saveTenant(academiaId: string, t: TenantDatabase): Promise<void> {
