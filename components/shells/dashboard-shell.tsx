@@ -45,6 +45,8 @@ export function DashboardShell({
   const pathname = usePathname();
   const router = useRouter();
   const { user, tenant, logout, canSwitchTenant, isUltraAdmin, refresh } = useAuth();
+  const showTrocarAcademia =
+    Boolean(user?.canSwitchTenant) || (user?.memberships?.length ?? 0) > 1;
   const [openMenu, setOpenMenu] = useState(false);
   const [switching, setSwitching] = useState(false);
 
@@ -103,11 +105,11 @@ export function DashboardShell({
       </div>
 
       <header className="sticky top-0 z-50 border-b border-tenant-shell-border/60 bg-tenant-shell-card/85 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+        <div className="mx-auto flex min-w-0 max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:gap-4">
           <Link
             href={basePath}
             className={cn(
-              "group flex min-w-0 max-w-[min(100%,28rem)] flex-1 items-center gap-3 rounded-xl py-1 pr-2 transition sm:gap-3.5 sm:pr-3",
+              "group flex min-w-0 max-w-[min(100%,26rem)] shrink items-center gap-3 rounded-xl py-1 pr-2 transition sm:max-w-[min(100%,28rem)] sm:gap-3.5 sm:pr-3",
               "outline-none hover:bg-white/[0.04] focus-visible:ring-2 focus-visible:ring-[color:var(--tenant-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a]",
             )}
           >
@@ -175,7 +177,7 @@ export function DashboardShell({
           </Link>
 
           <nav
-            className="hidden items-center gap-5 text-sm text-neutral-300 lg:flex"
+            className="hidden shrink-0 flex-wrap items-center justify-end gap-x-4 gap-y-2 text-sm text-neutral-300 lg:flex"
             aria-label="Principal"
           >
             {allNav.map((item) => {
@@ -216,7 +218,7 @@ export function DashboardShell({
                 Trocar unidade
               </Link>
             ) : null}
-            {canSwitchTenant ? (
+            {showTrocarAcademia ? (
               <button
                 type="button"
                 disabled={switching}
@@ -238,8 +240,21 @@ export function DashboardShell({
             </button>
           </nav>
 
-          <div className="flex items-center gap-2 lg:hidden">
-            <span className="max-w-[100px] truncate text-xs text-neutral-400">
+          <div className="flex min-w-0 shrink-0 items-center gap-2 lg:hidden">
+            {showTrocarAcademia ? (
+              <button
+                type="button"
+                disabled={switching}
+                onClick={() => void switchAcademia()}
+                className="inline-flex shrink-0 items-center gap-1 rounded-full border border-tenant-shell-border/40 px-2.5 py-1.5 text-[11px] font-medium text-neutral-200 transition hover:border-tenant-shell-border/60 hover:text-tenant-shell-fg"
+                aria-label="Trocar de academia"
+                title="Trocar de academia"
+              >
+                <FontAwesomeIcon icon={faRightLeft} className="text-[10px]" />
+                <span className="hidden sm:inline">Trocar</span>
+              </button>
+            ) : null}
+            <span className="max-w-[72px] truncate text-xs text-neutral-400 sm:max-w-[100px]">
               {user?.name?.split(" ")[0] ?? "—"}
             </span>
             <button
@@ -288,7 +303,7 @@ export function DashboardShell({
                 <FontAwesomeIcon icon={faMoneyBillWave} className="w-4" />
                 Mensalidade
               </Link>
-              {canSwitchTenant ? (
+              {showTrocarAcademia ? (
                 <button
                   type="button"
                   disabled={switching}

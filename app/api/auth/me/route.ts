@@ -4,29 +4,47 @@ import {
   SESSION_COOKIE_NAME,
   decodeSessionPayload,
 } from "@/lib/auth/session-cookie";
-import { TENANT_COOKIE_NAME } from "@/lib/auth/tenant-cookie";
+import {
+  TENANT_COOKIE_NAME,
+  tenantCookieOptions,
+} from "@/lib/auth/tenant-cookie";
 import { readDatabase } from "@/lib/db/file-store";
 import { recordToTenantAcademia } from "@/lib/tenant/branding";
+
+const TENANT_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 
 export async function GET() {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   const session = token ? decodeSessionPayload(token) : null;
-  const tenantId = cookieStore.get(TENANT_COOKIE_NAME)?.value ?? null;
+  const tenantCookieRaw =
+    cookieStore.get(TENANT_COOKIE_NAME)?.value?.trim() || null;
   const db = await readDatabase();
 
-  const academia =
-    tenantId && db.academias.length
-      ? (db.academias.find((a) => a.id === tenantId) ?? null)
+  let academia =
+    tenantCookieRaw && db.academias.length
+      ? (db.academias.find((a) => a.id === tenantCookieRaw) ?? null)
       : null;
+
+  if (!academia && tenantCookieRaw && db.academias.length) {
+    const s = tenantCookieRaw.toLowerCase();
+    academia = db.academias.find((a) => a.slug.toLowerCase() === s) ?? null;
+    if (academia && academia.id !== tenantCookieRaw) {
+      cookieStore.set(
+        TENANT_COOKIE_NAME,
+        academia.id,
+        tenantCookieOptions(TENANT_COOKIE_MAX_AGE),
+      );
+    }
+  }
 
   const tenant = academia
     ? recordToTenantAcademia(academia)
-    : tenantId
+    : tenantCookieRaw
       ? {
-          id: tenantId,
+          id: tenantCookieRaw,
           nome: "Academia",
-          slug: tenantId,
+          slug: tenantCookieRaw,
           endereco: null,
           telefone: null,
           instagram: null,

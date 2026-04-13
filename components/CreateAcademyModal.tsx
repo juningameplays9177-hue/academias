@@ -324,6 +324,8 @@ export function CreateAcademyModal({
         corTexto: corTexto.trim() || null,
         /** Mesmo ao salvar só o tema, persiste WhatsApp/contato visíveis no formulário (evita perder o número). */
         telefone: telefone.trim() || null,
+        /** Logo escolhido no modal (evita perder a foto se o ultra salvar só o tema). */
+        logoUrl: logoData,
       });
       pushToast({
         type: "success",
