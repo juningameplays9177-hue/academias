@@ -375,6 +375,6 @@ async function runProxy(request: NextRequest) {
  */
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon\\.ico|favicon\\.svg|api/public/|api/auth/|api/site/).*)",
+    "/((?!_next/static|_next/image|favicon\\.ico|favicon\\.svg|robots\\.txt|sitemap\\.xml|manifest\\.webmanifest|api/public/|api/auth/|api/site/).*)",
   ],
 };

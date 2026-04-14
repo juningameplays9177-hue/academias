@@ -1,15 +1,18 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  async rewrites() {
-    return [{ source: "/favicon.ico", destination: "/favicon.svg" }];
-  },
   async headers() {
     const noStore = {
       key: "Cache-Control",
       value: "private, no-cache, no-store, max-age=0, must-revalidate",
     };
+    const faviconCache = {
+      key: "Cache-Control",
+      value: "public, max-age=604800, stale-while-revalidate=86400",
+    };
     return [
+      { source: "/favicon.ico", headers: [faviconCache] },
+      { source: "/favicon.svg", headers: [faviconCache] },
       { source: "/", headers: [noStore] },
       { source: "/login", headers: [noStore] },
       { source: "/login/:path*", headers: [noStore] },
