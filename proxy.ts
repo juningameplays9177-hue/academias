@@ -157,6 +157,14 @@ function pathNeedsForcedHtmlRewrite(pathname: string): boolean {
 }
 
 export async function proxy(request: NextRequest) {
+  try {
+    return await runProxy(request);
+  } catch {
+    return NextResponse.next();
+  }
+}
+
+async function runProxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const session = token ? decodeSessionPayload(token) : null;

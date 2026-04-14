@@ -324,6 +324,18 @@ async function mergeFromDisk(platform: PlatformRegistry): Promise<AppDatabase> {
   };
 }
 
+/**
+ * Em ambientes somente leitura (ex.: Vercel serverless sem volume), gravação em `data/` falha.
+ * Leituras que fazem “seed” no disco não devem derrubar a request — seguimos com dados em memória.
+ */
+async function persistMergedDatabaseBestEffort(merged: AppDatabase): Promise<void> {
+  try {
+    await persistMergedDatabase(merged);
+  } catch {
+    /* noop */
+  }
+}
+
 /** Grava `platform.json` + pasta/arquivo por academia e remove diretórios de unidades excluídas. */
 export async function persistMergedDatabase(merged: AppDatabase): Promise<void> {
   await ensureDirs();
@@ -384,7 +396,11 @@ async function migrateLegacyDatabaseIfPresent(): Promise<void> {
   await ensureDirs();
   const raw = await fs.readFile(LEGACY_DB_PATH, "utf-8");
   const merged = JSON.parse(raw) as AppDatabase;
-  await persistMergedDatabase(merged);
+  try {
+    await persistMergedDatabase(merged);
+  } catch {
+    return;
+  }
   const bak = `${LEGACY_DB_PATH}.migrated.${Date.now()}.bak`;
   await fs.rename(LEGACY_DB_PATH, bak);
 }
@@ -399,8 +415,12 @@ export async function readDatabase(): Promise<AppDatabase> {
     platform = await loadPlatform();
   } catch {
     const seed = createSeedDatabase();
-    await persistMergedDatabase(seed);
-    return seed;
+    await persistMergedDatabaseBestEffort(seed);
+    try {
+      platform = await loadPlatform();
+    } catch {
+      return seed;
+    }
   }
 
   return mergeFromDisk(platform);
@@ -511,7 +531,12 @@ export async function readPlatformRegistry(): Promise<PlatformRegistry> {
     return await loadPlatform();
   } catch {
     const seed = createSeedDatabase();
-    await persistMergedDatabase(seed);
-    return (await loadPlatform()) as PlatformRegistry;
+    await persistMergedDatabaseBestEffort(seed);
+    try {
+      return await loadPlatform();
+    } catch {
+      const { platform } = splitMergedToParts(seed);
+      return platform;
+    }
   }
 }
