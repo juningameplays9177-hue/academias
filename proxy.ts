@@ -69,9 +69,26 @@ async function loadPlatformOnce(): Promise<PlatformRegistryProxyView | null> {
   }
 }
 
+/** Query só para Flight/RSC — navegação “documento” não deve enviar (senão o browser mostra `:HL[...]`). */
+function stripDocumentShouldNotCarryRscParams(url: URL): boolean {
+  let changed = false;
+  for (const key of [...url.searchParams.keys()]) {
+    if (
+      key === "_rsc" ||
+      key === "__nextDataReq" ||
+      key.startsWith("_next") ||
+      key.startsWith("__next") ||
+      key === "flight"
+    ) {
+      url.searchParams.delete(key);
+      changed = true;
+    }
+  }
+  return changed;
+}
+
 function clearInternalNextQuery(url: URL) {
-  url.searchParams.delete("_rsc");
-  url.searchParams.delete("__nextDataReq");
+  stripDocumentShouldNotCarryRscParams(url);
 }
 
 function redirectWithCleanQuery(request: NextRequest, pathname: string) {
@@ -98,6 +115,19 @@ function isNextFlightRequest(request: NextRequest): boolean {
   return false;
 }
 
+/** Navegação HTML típica — não é cliente RSC pedindo `text/x-component`. */
+function looksLikeBrowserDocumentNavigation(request: NextRequest): boolean {
+  if (isNextFlightRequest(request)) return false;
+  const dest = request.headers.get("Sec-Fetch-Dest");
+  const mode = request.headers.get("Sec-Fetch-Mode");
+  if (dest === "document") return true;
+  if (mode === "navigate") return true;
+  const accept = request.headers.get("Accept") ?? "";
+  return (
+    accept.includes("text/html") && !accept.includes("text/x-component")
+  );
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
@@ -111,19 +141,18 @@ export async function proxy(request: NextRequest) {
   if (pathname === "/api/health") return NextResponse.next();
 
   /**
-   * Navegação “normal” que chegou com `?_rsc=` na URL (bookmark, proxy, bug de cliente)
-   * sem headers Flight → o servidor devolve stream RSC e o usuário vê texto `:HL[...]`.
-   * Reescreve internamente para a mesma rota sem parâmetros internos (mantém SPA intacta).
+   * Navegação documento com parâmetros internos do App Router / bookmark / CDN
+   * sem headers Flight → resposta RSC “crua” na tela (`:HL[...]`).
    */
   if (
+    request.method === "GET" &&
     !pathname.startsWith("/api/") &&
-    (request.nextUrl.searchParams.has("_rsc") ||
-      request.nextUrl.searchParams.has("__nextDataReq")) &&
-    !isNextFlightRequest(request)
+    looksLikeBrowserDocumentNavigation(request)
   ) {
     const clean = request.nextUrl.clone();
-    clearInternalNextQuery(clean);
-    return NextResponse.rewrite(clean);
+    if (stripDocumentShouldNotCarryRscParams(clean)) {
+      return NextResponse.rewrite(clean);
+    }
   }
 
   const p = await loadPlatformOnce();
