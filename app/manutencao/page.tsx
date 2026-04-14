@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { readDatabase } from "@/lib/db/file-store";
 import { isSitePublicOff } from "@/lib/platform/site-public-off";
 
+export const dynamic = "force-dynamic";
+
 export default async function ManutencaoPage() {
   const db = await readDatabase();
   if (!isSitePublicOff(db)) {
