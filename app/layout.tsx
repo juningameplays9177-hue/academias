@@ -24,6 +24,9 @@ export const metadata: Metadata = {
   },
   description:
     "Plataforma multi-unidade: cada academia com site, marca e dados isolados. Ajuste título e descrição no app conforme a unidade selecionada.",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
