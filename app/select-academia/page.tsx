@@ -4,7 +4,7 @@ import {
   SESSION_COOKIE_NAME,
   decodeSessionPayload,
 } from "@/lib/auth/session-cookie";
-import { readPlatformRegistryPublic } from "@/lib/db/file-store";
+import { readPlatformPublicSnapshot } from "@/lib/db/file-store";
 import { homePathForRole } from "@/lib/rbac/home-path";
 import { isRoleId } from "@/lib/rbac/roles";
 import type { SelectAcademiaPublicCard } from "@/lib/tenant/select-academia-types";
@@ -16,7 +16,9 @@ export default async function SelectAcademiaPage() {
   const token = jar.get(SESSION_COOKIE_NAME)?.value;
   const session = token ? decodeSessionPayload(token) : null;
 
-  if (session && !session.needsTenantSelection) {
+  const mustPickTenant = session?.needsTenantSelection === true;
+
+  if (session && !mustPickTenant) {
     const role = isRoleId(session.role) ? session.role : "aluno";
     redirect(homePathForRole(role));
   }
@@ -24,23 +26,25 @@ export default async function SelectAcademiaPage() {
   let initialAcademias: SelectAcademiaPublicCard[] = [];
 
   try {
-    const platform = await readPlatformRegistryPublic();
-    initialAcademias = (platform.academias ?? [])
-      .filter((a) => a.status === "ativo" && a.plataformaDesligada !== true)
-      .map((a) => ({
-        id: a.id,
-        nome: a.nome,
-        slug: a.slug,
-        logoUrl: a.logoUrl ?? null,
-        cidade: a.cidade ?? null,
-        estado: a.estado ?? null,
-        tagline: a.tagline ?? null,
-      }));
+    const platform = await readPlatformPublicSnapshot();
+    if (platform) {
+      initialAcademias = (platform.academias ?? [])
+        .filter((a) => a.status === "ativo" && a.plataformaDesligada !== true)
+        .map((a) => ({
+          id: a.id,
+          nome: a.nome,
+          slug: a.slug,
+          logoUrl: a.logoUrl ?? null,
+          cidade: a.cidade ?? null,
+          estado: a.estado ?? null,
+          tagline: a.tagline ?? null,
+        }));
+    }
   } catch (err) {
-    console.error("[select-academia] readPlatformRegistryPublic", err);
+    console.error("[select-academia] readPlatformPublicSnapshot", err);
   }
 
-  const needsMultiPick = Boolean(session?.needsTenantSelection);
+  const needsMultiPick = mustPickTenant;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-neutral-950 to-black px-4 py-12 text-white">

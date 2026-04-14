@@ -510,16 +510,26 @@ export async function readPlatformRegistryForProxy(): Promise<PlatformRegistryPr
 }
 
 /**
- * Leitura para rotas quentes (hub, `/api/auth/me`, público). Prefere `platform-public.json`
- * (sem logos base64); se ausente, usa `readPlatformRegistry()`.
+ * Só `data/platform-public.json` — sem fallback pesado (migrações / `platform.json`).
+ * SSR do hub `/select-academia`: evita timeout e **503** da Hostinger em cold start.
  */
-export async function readPlatformRegistryPublic(): Promise<PlatformRegistry> {
+export async function readPlatformPublicSnapshot(): Promise<PlatformRegistry | null> {
   try {
     const raw = await fs.readFile(PLATFORM_PUBLIC_PATH, "utf-8");
     return JSON.parse(raw) as PlatformRegistry;
   } catch {
-    return readPlatformRegistry();
+    return null;
   }
+}
+
+/**
+ * Leitura para rotas quentes (hub, `/api/auth/me`, público). Prefere `platform-public.json`
+ * (sem logos base64); se ausente, usa `readPlatformRegistry()`.
+ */
+export async function readPlatformRegistryPublic(): Promise<PlatformRegistry> {
+  const snap = await readPlatformPublicSnapshot();
+  if (snap) return snap;
+  return readPlatformRegistry();
 }
 
 /** Lê só o cadastro global (academias + ultra), sem carregar tenants. */

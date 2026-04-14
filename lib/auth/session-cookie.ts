@@ -54,7 +54,14 @@ export function decodeSessionPayload(token: string): SessionPayload | null {
     if (!data?.sub || !data?.role || !data?.exp) return null;
     if (!isRoleId(String(data.role))) return null;
     if (Date.now() > data.exp) return null;
-    return { ...data, v: data.v ?? 2 };
+    const nts = data.needsTenantSelection as unknown;
+    const needsTenantSelection =
+      nts === true || nts === "true" ? true : undefined;
+    return {
+      ...data,
+      v: data.v ?? 2,
+      needsTenantSelection,
+    };
   } catch {
     return null;
   }
