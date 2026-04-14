@@ -33,6 +33,16 @@ type PublicAcademia = {
   tagline: string | null;
 };
 
+const FETCH_MS = 25_000;
+
+function fetchNoStore(url: string) {
+  const init: RequestInit = { cache: "no-store" };
+  if (typeof AbortSignal !== "undefined" && "timeout" in AbortSignal) {
+    init.signal = AbortSignal.timeout(FETCH_MS);
+  }
+  return fetch(url, init);
+}
+
 export function SelectAcademiaClient() {
   const router = useRouter();
   const { pushToast } = useToast();
@@ -40,19 +50,17 @@ export function SelectAcademiaClient() {
   const [user, setUser] = useState<MeTenantChoices["user"] | null | undefined>(
     undefined,
   );
-  const [loading, setLoading] = useState(true);
+  const [meReady, setMeReady] = useState(false);
   const [picking, setPicking] = useState<string | null>(null);
   const [publicAcademias, setPublicAcademias] = useState<PublicAcademia[]>([]);
   const [publicLoaded, setPublicLoaded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+
+    void (async () => {
       try {
-        const [meRes, pubRes] = await Promise.all([
-          fetch("/api/auth/me", { cache: "no-store" }),
-          fetch("/api/public/academias", { cache: "no-store" }),
-        ]);
+        const pubRes = await fetchNoStore("/api/public/academias");
         let list: PublicAcademia[] = [];
         if (pubRes.ok) {
           try {
@@ -63,48 +71,57 @@ export function SelectAcademiaClient() {
           }
         }
         if (!cancelled) {
-          if (meRes.ok) {
-            try {
-              const meData = (await meRes.json()) as MeTenantChoices;
-              if (meData.user) {
-                setUser(meData.user);
-                if (meData.user.needsTenantSelection) {
-                  setChoices(meData.user.memberships ?? []);
-                }
-              } else {
-                setUser(null);
-              }
-            } catch {
-              setUser(null);
-            }
-          } else {
-            setUser(null);
-          }
           setPublicAcademias(list);
           setPublicLoaded(true);
         }
       } catch {
         if (!cancelled) {
-          setUser(null);
           setPublicAcademias([]);
           setPublicLoaded(true);
         }
-      } finally {
-        if (!cancelled) setLoading(false);
       }
     })();
+
+    void (async () => {
+      try {
+        const meRes = await fetchNoStore("/api/auth/me");
+        if (cancelled) return;
+        if (meRes.ok) {
+          try {
+            const meData = (await meRes.json()) as MeTenantChoices;
+            if (meData.user) {
+              setUser(meData.user);
+              if (meData.user.needsTenantSelection) {
+                setChoices(meData.user.memberships ?? []);
+              }
+            } else {
+              setUser(null);
+            }
+          } catch {
+            setUser(null);
+          }
+        } else {
+          setUser(null);
+        }
+      } catch {
+        if (!cancelled) setUser(null);
+      } finally {
+        if (!cancelled) setMeReady(true);
+      }
+    })();
+
     return () => {
       cancelled = true;
     };
   }, []);
 
   useEffect(() => {
-    if (loading) return;
+    if (!meReady) return;
     if (!user || user.needsTenantSelection) return;
     const role: RoleId = isRoleId(user.role) ? user.role : "aluno";
     router.replace(homePathForRole(role));
     router.refresh();
-  }, [loading, user, router]);
+  }, [meReady, user, router]);
 
   async function pick(academiaId: string) {
     setPicking(academiaId);
@@ -135,7 +152,7 @@ export function SelectAcademiaClient() {
     }
   }
 
-  if (loading || user === undefined || !publicLoaded) {
+  if (!publicLoaded || !meReady) {
     return (
       <p className="text-center text-sm text-neutral-500">Carregando…</p>
     );
