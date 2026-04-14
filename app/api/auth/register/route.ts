@@ -20,6 +20,7 @@ export async function POST(request: Request) {
     confirmarSenha?: string;
     cpf?: string;
     celular?: string;
+    academiaSlug?: string;
   };
 
   const nome = body.nome?.trim() ?? "";
@@ -28,6 +29,7 @@ export async function POST(request: Request) {
   const confirmarSenha = body.confirmarSenha ?? "";
   const cpfNorm = normalizeCpf(body.cpf ?? "");
   const celular = normalizePhone(body.celular ?? "");
+  const academiaSlug = body.academiaSlug?.trim().toLowerCase() ?? "";
 
   if (nome.length < 3) {
     return NextResponse.json(
@@ -61,29 +63,34 @@ export async function POST(request: Request) {
   }
 
   const db = await readDatabase();
-  const defaultAcademiaId =
-    db.academias.find(
-      (a) => a.status === "ativo" && !a.plataformaDesligada,
-    )?.id ?? null;
-  if (!defaultAcademiaId) {
+  if (!academiaSlug) {
+    return NextResponse.json(
+      { error: "Selecione uma unidade antes de cadastrar." },
+      { status: 400 },
+    );
+  }
+  const targetAcademia =
+    db.academias.find((a) => a.slug.toLowerCase() === academiaSlug) ?? null;
+  if (!targetAcademia || targetAcademia.status !== "ativo" || targetAcademia.plataformaDesligada) {
     return NextResponse.json(
       {
         error:
-          "Cadastro temporariamente indisponível: todas as unidades estão suspensas ou inativas.",
+          "Cadastro indisponível para esta unidade. Escolha uma academia ativa.",
       },
-      { status: 503 },
+      { status: 400 },
     );
   }
+  const targetAcademiaId = targetAcademia.id;
 
   if (
     db.users.some((u) => u.email.toLowerCase() === email) ||
     db.professors.some(
       (p) =>
-        p.email.toLowerCase() === email && p.academiaId === defaultAcademiaId,
+        p.email.toLowerCase() === email && p.academiaId === targetAcademiaId,
     ) ||
     db.students.some(
       (s) =>
-        s.email.toLowerCase() === email && s.academiaId === defaultAcademiaId,
+        s.email.toLowerCase() === email && s.academiaId === targetAcademiaId,
     )
   ) {
     return NextResponse.json(
@@ -106,11 +113,11 @@ export async function POST(request: Request) {
         : celular;
 
   const planoPadrao =
-    db.plans.find((p) => p.academiaId === defaultAcademiaId)?.id ?? "";
+    db.plans.find((p) => p.academiaId === targetAcademiaId)?.id ?? "";
 
   const novo: StudentRecord = {
     id: crypto.randomUUID(),
-    academiaId: defaultAcademiaId,
+    academiaId: targetAcademiaId,
     nome,
     email,
     password: senha,

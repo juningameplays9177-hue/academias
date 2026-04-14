@@ -9,6 +9,7 @@ import {
   tenantCookieOptions,
 } from "@/lib/auth/tenant-cookie";
 import { readPlatformRegistry } from "@/lib/db/file-store";
+import { isRoleId } from "@/lib/rbac/roles";
 import { recordToTenantAcademia } from "@/lib/tenant/branding";
 
 const TENANT_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
@@ -20,6 +21,14 @@ export async function GET() {
   const tenantCookieRaw =
     cookieStore.get(TENANT_COOKIE_NAME)?.value?.trim() || null;
   const platform = await readPlatformRegistry();
+  const memberships = session?.memberships ?? [];
+  const userRole = session?.role ?? "";
+  const canUseAnyTenant = isRoleId(userRole) && userRole === "ultra_admin";
+
+  const tenantAllowed = (tenantId: string) => {
+    if (canUseAnyTenant) return true;
+    return memberships.some((m) => m.academiaId === tenantId);
+  };
 
   let academia =
     tenantCookieRaw && platform.academias.length
@@ -38,9 +47,22 @@ export async function GET() {
     }
   }
 
+  if (academia && !tenantAllowed(academia.id)) {
+    academia = null;
+  }
+
+  const tenantCookieVisible =
+    tenantCookieRaw &&
+    (canUseAnyTenant ||
+      memberships.some(
+        (m) =>
+          m.academiaId === tenantCookieRaw ||
+          m.slug.toLowerCase() === tenantCookieRaw.toLowerCase(),
+      ));
+
   const tenant = academia
     ? recordToTenantAcademia(academia)
-    : tenantCookieRaw
+    : tenantCookieVisible
       ? {
           id: tenantCookieRaw,
           nome: "Academia",
@@ -74,8 +96,8 @@ export async function GET() {
       name: session.name,
       role: session.role,
       needsTenantSelection: Boolean(session.needsTenantSelection),
-      memberships: session.memberships ?? [],
-      canSwitchTenant: (session.memberships?.length ?? 0) > 1,
+      memberships,
+      canSwitchTenant: memberships.length > 1,
     },
     tenant,
   });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faUser,
@@ -25,6 +26,7 @@ type Props = {
 };
 
 export function RegisterForm({ onRegistered }: Props) {
+  const params = useSearchParams();
   const { pushToast } = useToast();
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
@@ -58,6 +60,7 @@ export function RegisterForm({ onRegistered }: Props) {
           confirmarSenha,
           cpf,
           celular,
+          academiaSlug: params.get("unidade") ?? undefined,
         }),
       });
       const body = (await res.json()) as { ok?: boolean; error?: string; message?: string };
