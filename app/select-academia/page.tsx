@@ -7,7 +7,9 @@ import {
 import { readPlatformRegistryPublic } from "@/lib/db/file-store";
 import { homePathForRole } from "@/lib/rbac/home-path";
 import { isRoleId } from "@/lib/rbac/roles";
-import { SelectAcademiaClient } from "@/components/tenant/select-academia-client";
+import type { SelectAcademiaPublicCard } from "@/lib/tenant/select-academia-types";
+import { SelectAcademiaMultiClient } from "@/components/tenant/select-academia-multi-client";
+import { SelectAcademiaPublicGrid } from "@/components/tenant/select-academia-public-grid";
 
 export default async function SelectAcademiaPage() {
   const jar = await cookies();
@@ -19,24 +21,12 @@ export default async function SelectAcademiaPage() {
     redirect(homePathForRole(role));
   }
 
-  let initialAcademias: {
-    id: string;
-    nome: string;
-    slug: string;
-    logoUrl: string | null;
-    cidade: string | null;
-    estado: string | null;
-    tagline: string | null;
-  }[] = [];
+  let initialAcademias: SelectAcademiaPublicCard[] = [];
 
   try {
     const platform = await readPlatformRegistryPublic();
     initialAcademias = (platform.academias ?? [])
-      .filter(
-        (a) =>
-          a.status === "ativo" &&
-          a.plataformaDesligada !== true,
-      )
+      .filter((a) => a.status === "ativo" && a.plataformaDesligada !== true)
       .map((a) => ({
         id: a.id,
         nome: a.nome,
@@ -50,16 +40,7 @@ export default async function SelectAcademiaPage() {
     console.error("[select-academia] readPlatformRegistryPublic", err);
   }
 
-  const initialMeUser = session
-    ? {
-        id: session.sub,
-        email: session.email,
-        name: session.name,
-        role: session.role,
-        needsTenantSelection: Boolean(session.needsTenantSelection),
-        memberships: session.memberships ?? [],
-      }
-    : null;
+  const needsMultiPick = Boolean(session?.needsTenantSelection);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-neutral-950 to-black px-4 py-12 text-white">
@@ -77,10 +58,20 @@ export default async function SelectAcademiaPage() {
             escolhe o painel — os dados ficam sempre isolados por unidade.
           </p>
         </header>
-        <SelectAcademiaClient
-          initialAcademias={initialAcademias}
-          initialMeUser={initialMeUser}
-        />
+        {needsMultiPick && session ? (
+          <SelectAcademiaMultiClient
+            initialUser={{
+              id: session.sub,
+              email: session.email,
+              name: session.name,
+              role: session.role,
+              needsTenantSelection: true,
+              memberships: session.memberships ?? [],
+            }}
+          />
+        ) : (
+          <SelectAcademiaPublicGrid academias={initialAcademias} />
+        )}
       </div>
     </div>
   );
