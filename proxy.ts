@@ -76,22 +76,48 @@ function redirectWithCleanQuery(request: NextRequest, pathname: string) {
   return NextResponse.redirect(url);
 }
 
+/**
+ * Requisições Flight/RSC do App Router (Next.js) — precisam manter `_rsc` e headers.
+ * Ver `next/dist/client/components/app-router-headers.js` (RSC_HEADER, FLIGHT_HEADERS).
+ */
+function isNextFlightRequest(request: NextRequest): boolean {
+  const h = request.headers;
+  const rsc = h.get("rsc");
+  if (rsc === "1" || rsc === "true") return true;
+  if (h.has("next-router-state-tree")) return true;
+  if (h.get("next-router-prefetch")) return true;
+  if (h.get("next-router-segment-prefetch")) return true;
+  if (h.get("next-hmr-refresh")) return true;
+  const accept = h.get("Accept") ?? "";
+  if (accept.includes("text/x-component")) return true;
+  return false;
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const session = token ? decodeSessionPayload(token) : null;
   const tenantId = request.cookies.get(TENANT_COOKIE_NAME)?.value ?? null;
-  const isDocumentRequest = request.headers.get("sec-fetch-dest") === "document";
 
   if (isStaticPath(pathname)) return NextResponse.next();
   if (pathname === "/api/site/public-status") return NextResponse.next();
   if (pathname === "/api/site/tenant-plataforma-off") return NextResponse.next();
   if (pathname === "/manutencao") return NextResponse.next();
 
-  if (isDocumentRequest && request.nextUrl.searchParams.has("_rsc")) {
+  /**
+   * Navegação “normal” que chegou com `?_rsc=` na URL (bookmark, proxy, bug de cliente)
+   * sem headers Flight → o servidor devolve stream RSC e o usuário vê texto `:HL[...]`.
+   * Reescreve internamente para a mesma rota sem parâmetros internos (mantém SPA intacta).
+   */
+  if (
+    !pathname.startsWith("/api/") &&
+    (request.nextUrl.searchParams.has("_rsc") ||
+      request.nextUrl.searchParams.has("__nextDataReq")) &&
+    !isNextFlightRequest(request)
+  ) {
     const clean = request.nextUrl.clone();
     clearInternalNextQuery(clean);
-    return NextResponse.redirect(clean);
+    return NextResponse.rewrite(clean);
   }
 
   const p = await loadPlatformOnce();
