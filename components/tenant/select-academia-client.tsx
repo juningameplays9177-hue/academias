@@ -23,7 +23,7 @@ type MeTenantChoices = {
   } | null;
 };
 
-type PublicAcademia = {
+export type PublicAcademia = {
   id: string;
   nome: string;
   slug: string;
@@ -33,59 +33,54 @@ type PublicAcademia = {
   tagline: string | null;
 };
 
+export type SelectAcademiaInitialMeUser = NonNullable<MeTenantChoices["user"]>;
+
 const FETCH_MS = 25_000;
 
 function fetchNoStore(url: string) {
-  const init: RequestInit = { cache: "no-store" };
-  if (typeof AbortSignal !== "undefined" && "timeout" in AbortSignal) {
-    init.signal = AbortSignal.timeout(FETCH_MS);
-  }
-  return fetch(url, init);
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), FETCH_MS);
+  return fetch(url, { cache: "no-store", signal: ctrl.signal }).finally(() =>
+    clearTimeout(tid),
+  );
 }
 
-export function SelectAcademiaClient() {
+type Props = {
+  initialAcademias: PublicAcademia[];
+  /** `null` = visitante (cookie sem sessão válida). */
+  initialMeUser: SelectAcademiaInitialMeUser | null;
+};
+
+export function SelectAcademiaClient({ initialAcademias, initialMeUser }: Props) {
   const router = useRouter();
   const { pushToast } = useToast();
-  const [choices, setChoices] = useState<TenantMembership[]>([]);
-  const [user, setUser] = useState<MeTenantChoices["user"] | null | undefined>(
-    undefined,
+  const [choices, setChoices] = useState<TenantMembership[]>(() =>
+    initialMeUser?.needsTenantSelection ? (initialMeUser.memberships ?? []) : [],
   );
-  const [meReady, setMeReady] = useState(false);
+  const [user, setUser] = useState<MeTenantChoices["user"] | null>(() => initialMeUser);
   const [picking, setPicking] = useState<string | null>(null);
-  const [publicAcademias, setPublicAcademias] = useState<PublicAcademia[]>([]);
-  const [publicLoaded, setPublicLoaded] = useState(false);
+  const [publicAcademias, setPublicAcademias] = useState<PublicAcademia[]>(
+    () => initialAcademias,
+  );
 
+  /** Sincroniza com as APIs quando a rede/CDN permite (SSR já mostrou a lista). */
   useEffect(() => {
     let cancelled = false;
-
     void (async () => {
       try {
-        const pubRes = await fetchNoStore("/api/public/academias");
-        let list: PublicAcademia[] = [];
+        const [pubRes, meRes] = await Promise.all([
+          fetchNoStore("/api/public/academias"),
+          fetchNoStore("/api/auth/me"),
+        ]);
+        if (cancelled) return;
         if (pubRes.ok) {
           try {
             const pubData = (await pubRes.json()) as { academias?: PublicAcademia[] };
-            list = pubData.academias ?? [];
+            setPublicAcademias(pubData.academias ?? []);
           } catch {
-            list = [];
+            /* mantém SSR */
           }
         }
-        if (!cancelled) {
-          setPublicAcademias(list);
-          setPublicLoaded(true);
-        }
-      } catch {
-        if (!cancelled) {
-          setPublicAcademias([]);
-          setPublicLoaded(true);
-        }
-      }
-    })();
-
-    void (async () => {
-      try {
-        const meRes = await fetchNoStore("/api/auth/me");
-        if (cancelled) return;
         if (meRes.ok) {
           try {
             const meData = (await meRes.json()) as MeTenantChoices;
@@ -93,35 +88,32 @@ export function SelectAcademiaClient() {
               setUser(meData.user);
               if (meData.user.needsTenantSelection) {
                 setChoices(meData.user.memberships ?? []);
+              } else {
+                setChoices([]);
               }
             } else {
               setUser(null);
+              setChoices([]);
             }
           } catch {
-            setUser(null);
+            /* mantém SSR */
           }
-        } else {
-          setUser(null);
         }
       } catch {
-        if (!cancelled) setUser(null);
-      } finally {
-        if (!cancelled) setMeReady(true);
+        /* timeout / rede — dados do servidor permanecem */
       }
     })();
-
     return () => {
       cancelled = true;
     };
   }, []);
 
   useEffect(() => {
-    if (!meReady) return;
     if (!user || user.needsTenantSelection) return;
     const role: RoleId = isRoleId(user.role) ? user.role : "aluno";
     router.replace(homePathForRole(role));
     router.refresh();
-  }, [meReady, user, router]);
+  }, [user, router]);
 
   async function pick(academiaId: string) {
     setPicking(academiaId);
@@ -152,12 +144,6 @@ export function SelectAcademiaClient() {
     }
   }
 
-  if (!publicLoaded || !meReady) {
-    return (
-      <p className="text-center text-sm text-neutral-500">Carregando…</p>
-    );
-  }
-
   if (user && !user.needsTenantSelection) {
     return (
       <p className="text-center text-sm text-neutral-500">Redirecionando…</p>
@@ -186,9 +172,9 @@ export function SelectAcademiaClient() {
     return (
       <div className="space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-semibold tracking-tight text-white">
+          <h2 className="text-2xl font-semibold tracking-tight text-white">
             Escolha a unidade
-          </h1>
+          </h2>
           <p className="mt-2 text-sm text-neutral-400">
             Selecione em qual academia deseja entrar agora.
           </p>
@@ -204,9 +190,9 @@ export function SelectAcademiaClient() {
                   <FontAwesomeIcon icon={faBuilding} className="text-lg" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h2 className="truncate text-lg font-semibold text-white">
+                  <h3 className="truncate text-lg font-semibold text-white">
                     {c.academiaNome}
-                  </h2>
+                  </h3>
                   <p className="text-xs text-neutral-500">@{c.slug}</p>
                   <p className="mt-2 text-xs font-medium uppercase tracking-wide text-neutral-400">
                     {c.role === "aluno"
@@ -249,9 +235,9 @@ export function SelectAcademiaClient() {
     return (
       <div className="space-y-6 text-center">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-white">
+          <h2 className="text-2xl font-semibold tracking-tight text-white">
             Escolha sua academia
-          </h1>
+          </h2>
           <p className="mt-2 text-sm text-neutral-400">
             Não há unidades disponíveis no momento. Entre com seu acesso ou tente mais tarde.
           </p>
@@ -268,14 +254,6 @@ export function SelectAcademiaClient() {
 
   return (
     <div className="space-y-6">
-      <div className="text-center">
-        <h1 className="text-2xl font-semibold tracking-tight text-white">
-          Passo 1 · Selecionar academia
-        </h1>
-        <p className="mt-2 text-sm text-neutral-400">
-          Em qual unidade você quer entrar? Toque em <strong>Entrar nesta academia</strong> e faça login com e-mail e senha. Cada unidade mantém os dados separados.
-        </p>
-      </div>
       <div className="grid gap-4 sm:grid-cols-2">
         {publicAcademias.map((a) => (
           <div
@@ -287,7 +265,7 @@ export function SelectAcademiaClient() {
                 <FontAwesomeIcon icon={faBuilding} className="text-lg" />
               </div>
               <div className="min-w-0 flex-1">
-                <h2 className="truncate text-lg font-semibold text-white">{a.nome}</h2>
+                <h3 className="truncate text-lg font-semibold text-white">{a.nome}</h3>
                 <p className="text-xs text-neutral-500">@{a.slug}</p>
                 {a.cidade || a.estado ? (
                   <p className="mt-2 text-xs text-neutral-400">
