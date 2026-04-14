@@ -11,6 +11,9 @@ import type { SelectAcademiaPublicCard } from "@/lib/tenant/select-academia-type
 import { SelectAcademiaMultiClient } from "@/components/tenant/select-academia-multi-client";
 import { SelectAcademiaPublicGrid } from "@/components/tenant/select-academia-public-grid";
 
+/** Evita shell HTML estático longamente cacheado na borda (chunks404 após novo deploy). */
+export const dynamic = "force-dynamic";
+
 export default async function SelectAcademiaPage() {
   const jar = await cookies();
   const token = jar.get(SESSION_COOKIE_NAME)?.value;

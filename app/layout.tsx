@@ -10,11 +10,14 @@ config.autoAddCss = false;
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  preload: true,
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  /** Menos um preload agressivo — reduz aviso “preloaded but not used” quando hidratação atrasa. */
+  preload: false,
 });
 
 export const metadata: Metadata = {
