@@ -522,13 +522,45 @@ export async function readPlatformPublicSnapshot(): Promise<PlatformRegistry | n
   }
 }
 
+/** Mesma regra que `scripts/ensure-platform-derivatives.mjs` — evita parse de data: URLs gigantes. */
+function stripLogoUrlForPublic(logoUrl: string | null | undefined): string | null {
+  if (logoUrl == null || typeof logoUrl !== "string") return null;
+  const u = logoUrl.trim();
+  if (!u) return null;
+  if (u.startsWith("data:")) return null;
+  if (u.length > 6000) return null;
+  return u;
+}
+
+/**
+ * Só lê `platform.json` + remove logos pesados — **sem** migrações nem varredura de tenants.
+ * Usado quando `platform-public.json` ainda não existe no disco (deploy antigo / build sem derivative).
+ */
+async function readPlatformJsonAsPublicStrip(): Promise<PlatformRegistry | null> {
+  try {
+    const raw = await fs.readFile(PLATFORM_PATH, "utf-8");
+    const platform = JSON.parse(raw) as PlatformRegistry;
+    return {
+      ...platform,
+      academias: (platform.academias ?? []).map((a) => ({
+        ...a,
+        logoUrl: stripLogoUrlForPublic(a.logoUrl) ?? null,
+      })),
+    };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Leitura para rotas quentes (hub, `/api/auth/me`, público). Prefere `platform-public.json`
- * (sem logos base64); se ausente, usa `readPlatformRegistry()`.
+ * (sem logos base64); senão `platform.json` com strip; só então `readPlatformRegistry()` (migrações).
  */
 export async function readPlatformRegistryPublic(): Promise<PlatformRegistry> {
   const snap = await readPlatformPublicSnapshot();
   if (snap) return snap;
+  const stripped = await readPlatformJsonAsPublicStrip();
+  if (stripped) return stripped;
   return readPlatformRegistry();
 }
 
