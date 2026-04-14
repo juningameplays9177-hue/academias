@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "platformSettings": {
+    "sitePublicoDesligado": false
+  },
+  "academias": [
+    {
+      "id": "acad_beira_rio",
+      "slug": "beira-rio-fit",
+      "status": "ativo",
+      "plataformaDesligada": false
+    },
+    {
+      "id": "acad_iron_moema",
+      "slug": "iron-house-moema",
+      "status": "ativo",
+      "plataformaDesligada": false
+    },
+    {
+      "id": "acad_2f0f072a3d3c",
+      "slug": "maxuel",
+      "status": "ativo",
+      "plataformaDesligada": false
+    }
+  ]
+}

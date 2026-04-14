@@ -181,6 +181,19 @@ export type AppDatabase = {
  * Registro global da rede: metadados das unidades + contas sem tenant (ultra admin).
  * Persistido em `data/platform.json`.
  */
+/**
+ * Só o necessário para `proxy.ts` (rotas, flags). Sem `logoUrl` em base64 nem users —
+ * evita parse de MB em cada request (cold start / primeira aba → 503 em serverless).
+ */
+export type PlatformRegistryProxyView = {
+  version: number;
+  platformSettings?: PlatformSettings;
+  academias: Pick<
+    AcademiaRecord,
+    "id" | "slug" | "status" | "plataformaDesligada"
+  >[];
+};
+
 export type PlatformRegistry = {
   version: number;
   platformSettings?: PlatformSettings;

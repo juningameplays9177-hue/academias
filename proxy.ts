@@ -5,7 +5,7 @@ import {
 } from "@/lib/auth/session-cookie";
 import { TENANT_COOKIE_NAME } from "@/lib/auth/tenant-cookie";
 import { readPlatformRegistryForProxy } from "@/lib/db/file-store";
-import type { PlatformRegistry } from "@/lib/db/types";
+import type { PlatformRegistryProxyView } from "@/lib/db/types";
 import { isAcademiaPlataformaDesligada } from "@/lib/platform/academia-access";
 import { isSitePublicOff } from "@/lib/platform/site-public-off";
 import { homePathForRole } from "@/lib/rbac/home-path";
@@ -61,8 +61,12 @@ function pathNeedsTenantCookie(pathname: string): boolean {
 /**
  * Leitura leve: sem migrações/seed (isso fica em `readPlatformRegistry` nas rotas API).
  */
-async function loadPlatformOnce(): Promise<PlatformRegistry | null> {
-  return readPlatformRegistryForProxy();
+async function loadPlatformOnce(): Promise<PlatformRegistryProxyView | null> {
+  try {
+    return await readPlatformRegistryForProxy();
+  } catch {
+    return null;
+  }
 }
 
 function clearInternalNextQuery(url: URL) {

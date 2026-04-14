@@ -13,6 +13,7 @@ import type {
   AppDatabase,
   PlanRecord,
   PlatformRegistry,
+  PlatformRegistryProxyView,
   TenantDatabase,
 } from "@/lib/db/types";
 import { createSeedDatabase } from "@/lib/db/seed";
@@ -20,6 +21,8 @@ import { createSeedDatabase } from "@/lib/db/seed";
 const DATA_DIR = path.join(process.cwd(), "data");
 const TENANTS_DIR = path.join(DATA_DIR, "tenants");
 const PLATFORM_PATH = path.join(DATA_DIR, "platform.json");
+/** Só flags + ids/slugs — usado pelo proxy para não parsear `platform.json` gigante (logos base64). */
+const PROXY_PLATFORM_PATH = path.join(DATA_DIR, "proxy-platform.json");
 /** Arquivo único legado (pré-split); migrado automaticamente na primeira leitura. */
 const LEGACY_DB_PATH = path.join(DATA_DIR, "database.json");
 
@@ -164,6 +167,30 @@ async function savePlatform(p: PlatformRegistry): Promise<void> {
   await fs.writeFile(PLATFORM_PATH, JSON.stringify(p, null, 2), "utf-8");
 }
 
+export function platformRegistryToProxyView(
+  p: PlatformRegistry,
+): PlatformRegistryProxyView {
+  return {
+    version: p.version,
+    platformSettings: p.platformSettings,
+    academias: p.academias.map((a) => ({
+      id: a.id,
+      slug: a.slug,
+      status: a.status,
+      plataformaDesligada: a.plataformaDesligada === true,
+    })),
+  };
+}
+
+async function saveProxyPlatformView(p: PlatformRegistry): Promise<void> {
+  const lite = platformRegistryToProxyView(p);
+  await fs.writeFile(
+    PROXY_PLATFORM_PATH,
+    JSON.stringify(lite, null, 2),
+    "utf-8",
+  );
+}
+
 async function loadTenant(academiaId: string): Promise<TenantDatabase> {
   const nested = tenantFilePath(academiaId);
   try {
@@ -266,6 +293,7 @@ export async function persistMergedDatabase(merged: AppDatabase): Promise<void> 
   await migrateFlatTenantJsonToSubfolders();
   const { platform, tenants } = splitMergedToParts(merged);
   await savePlatform(platform);
+  await saveProxyPlatformView(platform).catch(() => {});
 
   for (const [id, t] of tenants) {
     await saveTenant(id, t);
@@ -353,15 +381,71 @@ export async function mutateDatabase<T>(
   return result;
 }
 
-/**
- * Só leitura de `data/platform.json` — sem `mkdir`, migrações nem seed.
- * Usado pelo `proxy.ts` para não bloquear nem escrever disco a cada request
- * (comportamento que em serverless podia estourar tempo e virar 503 genérico).
- */
-export async function readPlatformRegistryForProxy(): Promise<PlatformRegistry | null> {
+type ProxyReadCache = {
+  path: string;
+  mtimeMs: number;
+  size: number;
+  data: PlatformRegistryProxyView | null;
+};
+
+let proxyRegistryReadCache: ProxyReadCache | null = null;
+
+async function readProxyViewFromDisk(
+  filePath: string,
+): Promise<PlatformRegistryProxyView | null> {
   try {
+    const st = await fs.stat(filePath);
+    if (
+      proxyRegistryReadCache &&
+      proxyRegistryReadCache.path === filePath &&
+      proxyRegistryReadCache.mtimeMs === st.mtimeMs &&
+      proxyRegistryReadCache.size === Number(st.size)
+    ) {
+      return proxyRegistryReadCache.data;
+    }
+    const raw = await fs.readFile(filePath, "utf-8");
+    const parsed = JSON.parse(raw) as PlatformRegistryProxyView;
+    proxyRegistryReadCache = {
+      path: filePath,
+      mtimeMs: st.mtimeMs,
+      size: Number(st.size),
+      data: parsed,
+    };
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Leitura leve para o `proxy.ts`: prefere `data/proxy-platform.json` (KB);
+ * se não existir, cai no `platform.json` completo (legado / primeiro deploy).
+ * Cache por mtime evita re-parse a cada request na mesma instância.
+ */
+export async function readPlatformRegistryForProxy(): Promise<PlatformRegistryProxyView | null> {
+  const lite = await readProxyViewFromDisk(PROXY_PLATFORM_PATH);
+  if (lite) return lite;
+
+  try {
+    const st = await fs.stat(PLATFORM_PATH);
+    if (
+      proxyRegistryReadCache &&
+      proxyRegistryReadCache.path === PLATFORM_PATH &&
+      proxyRegistryReadCache.mtimeMs === st.mtimeMs &&
+      proxyRegistryReadCache.size === Number(st.size)
+    ) {
+      return proxyRegistryReadCache.data;
+    }
     const raw = await fs.readFile(PLATFORM_PATH, "utf-8");
-    return JSON.parse(raw) as PlatformRegistry;
+    const full = JSON.parse(raw) as PlatformRegistry;
+    const view = platformRegistryToProxyView(full);
+    proxyRegistryReadCache = {
+      path: PLATFORM_PATH,
+      mtimeMs: st.mtimeMs,
+      size: Number(st.size),
+      data: view,
+    };
+    return view;
   } catch {
     return null;
   }
