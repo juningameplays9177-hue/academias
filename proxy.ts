@@ -64,16 +64,35 @@ async function loadPlatformOnce(): Promise<PlatformRegistry | null> {
   return readPlatformRegistryForProxy();
 }
 
+function clearInternalNextQuery(url: URL) {
+  url.searchParams.delete("_rsc");
+  url.searchParams.delete("__nextDataReq");
+}
+
+function redirectWithCleanQuery(request: NextRequest, pathname: string) {
+  const url = request.nextUrl.clone();
+  clearInternalNextQuery(url);
+  url.pathname = pathname;
+  return NextResponse.redirect(url);
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const session = token ? decodeSessionPayload(token) : null;
   const tenantId = request.cookies.get(TENANT_COOKIE_NAME)?.value ?? null;
+  const isDocumentRequest = request.headers.get("sec-fetch-dest") === "document";
 
   if (isStaticPath(pathname)) return NextResponse.next();
   if (pathname === "/api/site/public-status") return NextResponse.next();
   if (pathname === "/api/site/tenant-plataforma-off") return NextResponse.next();
   if (pathname === "/manutencao") return NextResponse.next();
+
+  if (isDocumentRequest && request.nextUrl.searchParams.has("_rsc")) {
+    const clean = request.nextUrl.clone();
+    clearInternalNextQuery(clean);
+    return NextResponse.redirect(clean);
+  }
 
   const p = await loadPlatformOnce();
   const publicOff = p ? isSitePublicOff(p) : false;
@@ -101,9 +120,7 @@ export async function proxy(request: NextRequest) {
         { status: 503 },
       );
     }
-    const url = request.nextUrl.clone();
-    url.pathname = "/manutencao";
-    return NextResponse.redirect(url);
+    return redirectWithCleanQuery(request, "/manutencao");
   }
 
   if (pathname === "/manutencao-unidade") {
@@ -113,17 +130,17 @@ export async function proxy(request: NextRequest) {
   if (!publicOff && pathname === "/") {
     if (session && !session.needsTenantSelection) {
       const role: RoleId = isRoleId(session.role) ? session.role : "aluno";
-      return NextResponse.redirect(new URL(homePathForRole(role), request.url));
+      return redirectWithCleanQuery(request, homePathForRole(role));
     }
-    return NextResponse.redirect(new URL("/select-academia", request.url));
+    return redirectWithCleanQuery(request, "/select-academia");
   }
 
   if (pathname === "/login" && session?.needsTenantSelection) {
-    return NextResponse.redirect(new URL("/select-academia", request.url));
+    return redirectWithCleanQuery(request, "/select-academia");
   }
   if (pathname === "/login" && session) {
     const role: RoleId = isRoleId(session.role) ? session.role : "aluno";
-    return NextResponse.redirect(new URL(homePathForRole(role), request.url));
+    return redirectWithCleanQuery(request, homePathForRole(role));
   }
 
   if (isPublicPath(pathname)) {
@@ -176,15 +193,14 @@ export async function proxy(request: NextRequest) {
 
   if (!session) {
     const url = request.nextUrl.clone();
+    clearInternalNextQuery(url);
     url.pathname = "/login";
     url.searchParams.set("from", pathname);
     return NextResponse.redirect(url);
   }
 
   if (session.needsTenantSelection && pathname !== "/select-academia") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/select-academia";
-    return NextResponse.redirect(url);
+    return redirectWithCleanQuery(request, "/select-academia");
   }
 
   if (
@@ -192,9 +208,7 @@ export async function proxy(request: NextRequest) {
     !tenantId &&
     session.role === "ultra_admin"
   ) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/ultra-admin";
-    return NextResponse.redirect(url);
+    return redirectWithCleanQuery(request, "/ultra-admin");
   }
 
   if (
@@ -202,15 +216,11 @@ export async function proxy(request: NextRequest) {
     !tenantId &&
     session.role !== "ultra_admin"
   ) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/select-academia";
-    return NextResponse.redirect(url);
+    return redirectWithCleanQuery(request, "/select-academia");
   }
 
   if (!canAccessPath(session.role, pathname)) {
-    const url = request.nextUrl.clone();
-    url.pathname = homePathForRole(session.role);
-    return NextResponse.redirect(url);
+    return redirectWithCleanQuery(request, homePathForRole(session.role));
   }
 
   const tenantPagesSuspended =
@@ -222,9 +232,7 @@ export async function proxy(request: NextRequest) {
   if (tenantPagesSuspended) {
     const tenantOff = isAcademiaPlataformaDesligada(p, tenantId);
     if (tenantOff) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/manutencao-unidade";
-      return NextResponse.redirect(url);
+      return redirectWithCleanQuery(request, "/manutencao-unidade");
     }
   }
 
