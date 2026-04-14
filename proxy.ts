@@ -11,6 +11,7 @@ import { isSitePublicOff } from "@/lib/platform/site-public-off";
 import { homePathForRole } from "@/lib/rbac/home-path";
 import { canAccessPath, canUseAdminApi } from "@/lib/rbac/route-guards";
 import { isRoleId, type RoleId } from "@/lib/rbac/roles";
+import { resolveTenantCookieRaw } from "@/lib/tenancy/tenant-cookie-resolve";
 
 const PUBLIC_PATHS = new Set([
   "/login",
@@ -97,7 +98,7 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const session = token ? decodeSessionPayload(token) : null;
-  const tenantId = request.cookies.get(TENANT_COOKIE_NAME)?.value ?? null;
+  const tenantCookieRaw = request.cookies.get(TENANT_COOKIE_NAME)?.value ?? null;
 
   if (isStaticPath(pathname)) return NextResponse.next();
   if (pathname === "/api/site/public-status") return NextResponse.next();
@@ -121,6 +122,11 @@ export async function proxy(request: NextRequest) {
   }
 
   const p = await loadPlatformOnce();
+  const tenantTrimmed = tenantCookieRaw?.trim() || null;
+  const tenantId =
+    tenantTrimmed && p
+      ? (resolveTenantCookieRaw(p.academias, tenantTrimmed) ?? tenantTrimmed)
+      : tenantTrimmed;
   const publicOff = p ? isSitePublicOff(p) : false;
   const isUltra = session?.role === "ultra_admin";
 

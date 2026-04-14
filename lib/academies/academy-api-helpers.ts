@@ -31,7 +31,7 @@ export function serializeAcademia(a: AcademiaRecord): AcademiaApiShape {
     slug: a.slug,
     status: a.status,
     logoUrl: a.logoUrl ?? null,
-    plataformaDesligada: Boolean(a.plataformaDesligada),
+    plataformaDesligada: a.plataformaDesligada === true,
     email: a.email ?? null,
     cidade: a.cidade ?? null,
     estado: a.estado ?? null,

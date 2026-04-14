@@ -8,6 +8,7 @@ import { readDatabase } from "@/lib/db/file-store";
 import type { AppDatabase } from "@/lib/db/types";
 import { isAcademiaPlataformaDesligada } from "@/lib/platform/academia-access";
 import { assertTenantScope } from "@/lib/tenancy/principal-in-tenant";
+import { resolveTenantCookieRaw } from "@/lib/tenancy/tenant-cookie-resolve";
 
 export type TenantAdminContext = {
   session: SessionPayload;
@@ -22,14 +23,22 @@ export async function requireTenantAdminContext():
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
   const jar = await cookies();
-  const tenantId = jar.get(TENANT_COOKIE_NAME)?.value;
-  if (!tenantId) {
+  const tenantRaw = jar.get(TENANT_COOKIE_NAME)?.value?.trim();
+  if (!tenantRaw) {
     return NextResponse.json(
       { error: "Academia não selecionada. Escolha uma unidade." },
       { status: 400 },
     );
   }
   const db = await readDatabase();
+  const tenantId =
+    resolveTenantCookieRaw(db.academias, tenantRaw) ?? tenantRaw;
+  if (!db.academias.some((a) => a.id === tenantId)) {
+    return NextResponse.json(
+      { error: "Unidade inválida no cookie. Selecione a academia novamente." },
+      { status: 400 },
+    );
+  }
   if (!assertTenantScope(db, session, tenantId)) {
     return NextResponse.json(
       { error: "Sessão não autorizada para esta academia." },
@@ -64,14 +73,22 @@ export async function requireTenantProfessorContext():
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
   const jar = await cookies();
-  const tenantId = jar.get(TENANT_COOKIE_NAME)?.value;
-  if (!tenantId) {
+  const tenantRaw = jar.get(TENANT_COOKIE_NAME)?.value?.trim();
+  if (!tenantRaw) {
     return NextResponse.json(
       { error: "Academia não selecionada." },
       { status: 400 },
     );
   }
   const db = await readDatabase();
+  const tenantId =
+    resolveTenantCookieRaw(db.academias, tenantRaw) ?? tenantRaw;
+  if (!db.academias.some((a) => a.id === tenantId)) {
+    return NextResponse.json(
+      { error: "Unidade inválida no cookie. Selecione a academia novamente." },
+      { status: 400 },
+    );
+  }
   if (!assertTenantScope(db, session, tenantId)) {
     return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
   }
@@ -100,14 +117,22 @@ export async function requireTenantAlunoContext():
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
   const jar = await cookies();
-  const tenantId = jar.get(TENANT_COOKIE_NAME)?.value;
-  if (!tenantId) {
+  const tenantRaw = jar.get(TENANT_COOKIE_NAME)?.value?.trim();
+  if (!tenantRaw) {
     return NextResponse.json(
       { error: "Academia não selecionada." },
       { status: 400 },
     );
   }
   const db = await readDatabase();
+  const tenantId =
+    resolveTenantCookieRaw(db.academias, tenantRaw) ?? tenantRaw;
+  if (!db.academias.some((a) => a.id === tenantId)) {
+    return NextResponse.json(
+      { error: "Unidade inválida no cookie. Selecione a academia novamente." },
+      { status: 400 },
+    );
+  }
   if (!assertTenantScope(db, session, tenantId)) {
     return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
   }

@@ -7,5 +7,5 @@ export function isAcademiaPlataformaDesligada(
 ): boolean {
   if (!academiaId) return false;
   const a = db.academias.find((x) => x.id === academiaId);
-  return Boolean(a?.plataformaDesligada);
+  return a?.plataformaDesligada === true;
 }
