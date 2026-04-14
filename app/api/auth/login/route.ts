@@ -37,9 +37,11 @@ export async function POST(request: Request) {
   const body = (await request.json()) as {
     email?: string;
     password?: string;
+    academiaSlug?: string;
   };
   const email = body.email ?? "";
   const password = body.password ?? "";
+  const academiaSlug = body.academiaSlug?.trim().toLowerCase() ?? "";
 
   const db = await readDatabase();
   let matches = resolveLoginMatches(db, email, password);
@@ -48,6 +50,31 @@ export async function POST(request: Request) {
       { error: "E-mail ou senha incorretos." },
       { status: 401 },
     );
+  }
+
+  if (academiaSlug) {
+    const targetAcademia = db.academias.find(
+      (a) => a.slug.toLowerCase() === academiaSlug,
+    );
+    if (!targetAcademia || targetAcademia.status !== "ativo") {
+      return NextResponse.json(
+        { error: "Unidade inválida ou indisponível para login." },
+        { status: 400 },
+      );
+    }
+    matches = matches.filter((m) => {
+      if (m.role === "ultra_admin") return true;
+      return m.academiaId === targetAcademia.id;
+    });
+    if (!matches.length) {
+      return NextResponse.json(
+        {
+          error:
+            "Este usuário não pertence à academia selecionada. Entre pela unidade correta.",
+        },
+        { status: 403 },
+      );
+    }
   }
 
   matches = matches.filter((m) => {

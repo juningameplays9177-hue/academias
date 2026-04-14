@@ -253,10 +253,10 @@ export function SelectAcademiaClient() {
     <div className="space-y-6">
       <div className="text-center">
         <h1 className="text-2xl font-semibold tracking-tight text-white">
-          Escolha sua academia
+          Passo 1 · Selecionar academia
         </h1>
         <p className="mt-2 text-sm text-neutral-400">
-          Selecione a unidade para continuar. Depois você fará login com seu e-mail e senha.
+          Em qual unidade você quer entrar? Toque em <strong>Entrar nesta academia</strong> e faça login com e-mail e senha. Cada unidade mantém os dados separados.
         </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -287,6 +287,12 @@ export function SelectAcademiaClient() {
             >
               Entrar nesta academia
               <FontAwesomeIcon icon={faArrowRight} className="text-xs" />
+            </Link>
+            <Link
+              href={`/a/${encodeURIComponent(a.slug)}`}
+              className="mt-2 inline-flex w-full items-center justify-center rounded-xl border border-white/20 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+            >
+              Ver site desta unidade
             </Link>
           </div>
         ))}

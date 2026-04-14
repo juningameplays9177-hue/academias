@@ -54,7 +54,11 @@ export function LoginForm({ initialEmail = "" }: Props) {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({
+          email,
+          password,
+          academiaSlug: unidadeSlug ?? undefined,
+        }),
       });
       const body = (await res.json()) as {
         ok?: boolean;
