@@ -112,8 +112,24 @@ function isNextFlightRequest(request: NextRequest): boolean {
   if (h.get("next-router-prefetch")) return true;
   if (h.get("next-router-segment-prefetch")) return true;
   if (h.get("next-hmr-refresh")) return true;
+  if (h.has("next-url")) return true;
+  if (h.get("next-instant-navigation-testing-prefetch")) return true;
   const accept = h.get("Accept") ?? "";
   if (accept.includes("text/x-component")) return true;
+  if (request.nextUrl.searchParams.has("_rsc")) return true;
+  return false;
+}
+
+/**
+ * `fetch()` do App Router (transição client-side) — não forçar HTML; senão o router quebra
+ * quando a CDN remove headers RSC mas mantém Sec-Fetch típico de XHR.
+ */
+function isLikelyClientRscFetch(request: NextRequest): boolean {
+  const mode = request.headers.get("Sec-Fetch-Mode");
+  if (mode === "navigate") return false;
+  if (mode === "cors" || mode === "same-origin") return true;
+  const dest = request.headers.get("Sec-Fetch-Dest");
+  if (dest === "empty") return true;
   return false;
 }
 
@@ -190,12 +206,13 @@ async function runProxy(request: NextRequest) {
   if (pathname === "/api/health") return NextResponse.next();
 
   /**
-   * Navegação “documento” que chega com headers de Flight (CDN, prefetch) → Next pode
-   * responder só com stream RSC. Reescreve com Accept HTML e sem headers RSC.
-   * `isBrowserDocumentNavigation`: mesmo com `rsc: 1` espúrio, aba real exige HTML.
+   * Navegação “documento” que chega com headers de Flight (CDN) → Next pode responder
+   * só com stream RSC (`:HL[...]`). Reescreve para HTML. Não aplicar em `fetch` do
+   * client router (`isLikelyClientRscFetch`), senão o app inteiro para de navegar.
    */
   const shouldForceFullDocumentHtml =
     pathNeedsForcedHtmlRewrite(pathname) &&
+    !isLikelyClientRscFetch(request) &&
     (isBrowserDocumentNavigation(request) || !isNextFlightRequest(request));
 
   if (
