@@ -19,18 +19,36 @@ export default async function SelectAcademiaPage() {
     redirect(homePathForRole(role));
   }
 
-  const platform = await readPlatformRegistryPublic();
-  const initialAcademias = (platform.academias ?? [])
-    .filter((a) => a.status === "ativo" && !a.plataformaDesligada)
-    .map((a) => ({
-      id: a.id,
-      nome: a.nome,
-      slug: a.slug,
-      logoUrl: a.logoUrl ?? null,
-      cidade: a.cidade ?? null,
-      estado: a.estado ?? null,
-      tagline: a.tagline ?? null,
-    }));
+  let initialAcademias: {
+    id: string;
+    nome: string;
+    slug: string;
+    logoUrl: string | null;
+    cidade: string | null;
+    estado: string | null;
+    tagline: string | null;
+  }[] = [];
+
+  try {
+    const platform = await readPlatformRegistryPublic();
+    initialAcademias = (platform.academias ?? [])
+      .filter(
+        (a) =>
+          a.status === "ativo" &&
+          a.plataformaDesligada !== true,
+      )
+      .map((a) => ({
+        id: a.id,
+        nome: a.nome,
+        slug: a.slug,
+        logoUrl: a.logoUrl ?? null,
+        cidade: a.cidade ?? null,
+        estado: a.estado ?? null,
+        tagline: a.tagline ?? null,
+      }));
+  } catch (err) {
+    console.error("[select-academia] readPlatformRegistryPublic", err);
+  }
 
   const initialMeUser = session
     ? {
