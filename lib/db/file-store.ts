@@ -197,6 +197,31 @@ async function saveTenant(academiaId: string, t: TenantDatabase): Promise<void> 
   await fs.writeFile(fp, JSON.stringify(t, null, 2), "utf-8");
 }
 
+/**
+ * Banco merged **apenas com os dados operacionais de uma academia** (um `tenant.json`).
+ * Mantém `academias` e usuários globais da plataforma — suficiente para APIs escopadas por tenant.
+ */
+export async function readDatabaseScopeTenant(
+  platform: PlatformRegistry,
+  academiaId: string,
+): Promise<AppDatabase> {
+  const t = await loadTenant(academiaId);
+  const orphan = platform.orphanTenantUsers ?? [];
+  return {
+    version: platform.version,
+    platformSettings: platform.platformSettings,
+    academias: platform.academias,
+    users: [...platform.users, ...orphan, ...t.users],
+    students: t.students,
+    plans: t.plans,
+    professors: t.professors,
+    workouts: t.workouts,
+    classes: t.classes,
+    notices: t.notices,
+    attendance: t.attendance,
+  };
+}
+
 async function mergeFromDisk(platform: PlatformRegistry): Promise<AppDatabase> {
   const orphan = platform.orphanTenantUsers ?? [];
   const tenantUsers: typeof platform.users = [];

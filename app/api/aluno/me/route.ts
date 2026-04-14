@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+
+export const maxDuration = 60;
 import { studentWithoutPassword } from "@/lib/db/student-public";
 import { requireTenantAlunoContext } from "@/lib/tenancy/require-tenant-api";
 

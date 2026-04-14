@@ -146,11 +146,28 @@ export async function proxy(request: NextRequest) {
     if (pathname.startsWith("/api/public/")) {
       return NextResponse.next();
     }
+    /** Site institucional off: painéis logados continuam (evita 503 em /api/aluno etc.). */
+    const role = session?.role;
+    const r = role && isRoleId(role) ? role : null;
+    const tenantPanelApiOk =
+      (pathname.startsWith("/api/aluno") && r === "aluno") ||
+      (pathname.startsWith("/api/professor") && r === "professor") ||
+      (pathname.startsWith("/api/admin") && r !== null && canUseAdminApi(r));
+    if (tenantPanelApiOk) {
+      return NextResponse.next();
+    }
     if (pathname.startsWith("/api/")) {
       return NextResponse.json(
         { error: "Site em manutenção. Apenas Ultra Admin pode usar a API agora." },
         { status: 503 },
       );
+    }
+    const tenantPanelPageOk =
+      (pathname.startsWith("/aluno") && r === "aluno") ||
+      (pathname.startsWith("/professor") && r === "professor") ||
+      (pathname.startsWith("/admin") && r !== null && canUseAdminApi(r));
+    if (tenantPanelPageOk) {
+      return NextResponse.next();
     }
     return redirectWithCleanQuery(request, "/manutencao");
   }

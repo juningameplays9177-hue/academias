@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+
+export const maxDuration = 60;
 import { mutateDatabase, readDatabase } from "@/lib/db/file-store";
 import { brDateKey } from "@/lib/date/br-date-key";
 import { requireTenantAlunoContext } from "@/lib/tenancy/require-tenant-api";
