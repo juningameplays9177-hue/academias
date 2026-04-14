@@ -119,13 +119,12 @@ function isNextFlightRequest(request: NextRequest): boolean {
 function looksLikeBrowserDocumentNavigation(request: NextRequest): boolean {
   if (isNextFlightRequest(request)) return false;
   const dest = request.headers.get("Sec-Fetch-Dest");
-  const mode = request.headers.get("Sec-Fetch-Mode");
   if (dest === "document") return true;
-  if (mode === "navigate") return true;
   const accept = request.headers.get("Accept") ?? "";
-  return (
-    accept.includes("text/html") && !accept.includes("text/x-component")
-  );
+  if (accept.includes("text/html") && !accept.includes("text/x-component")) {
+    return true;
+  }
+  return false;
 }
 
 export async function proxy(request: NextRequest) {
@@ -282,7 +281,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (session.needsTenantSelection && pathname !== "/select-academia") {
+  if (
+    session.needsTenantSelection &&
+    session.role !== "ultra_admin" &&
+    pathname !== "/select-academia"
+  ) {
     return redirectWithCleanQuery(request, "/select-academia");
   }
 
