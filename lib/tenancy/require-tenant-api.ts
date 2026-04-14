@@ -6,7 +6,7 @@ import type { SessionPayload } from "@/lib/auth/session-cookie";
 import { TENANT_COOKIE_NAME } from "@/lib/auth/tenant-cookie";
 import {
   readDatabaseScopeTenant,
-  readPlatformRegistry,
+  readPlatformRegistryPublic,
 } from "@/lib/db/file-store";
 import type { AppDatabase } from "@/lib/db/types";
 import { isAcademiaPlataformaDesligada } from "@/lib/platform/academia-access";
@@ -33,7 +33,7 @@ export async function requireTenantAdminContext():
       { status: 400 },
     );
   }
-  const platform = await readPlatformRegistry();
+  const platform = await readPlatformRegistryPublic();
   const tenantId =
     resolveTenantCookieRaw(platform.academias, tenantRaw) ?? tenantRaw;
   if (!platform.academias.some((a) => a.id === tenantId)) {
@@ -84,7 +84,7 @@ export async function requireTenantProfessorContext():
       { status: 400 },
     );
   }
-  const platform = await readPlatformRegistry();
+  const platform = await readPlatformRegistryPublic();
   const tenantId =
     resolveTenantCookieRaw(platform.academias, tenantRaw) ?? tenantRaw;
   if (!platform.academias.some((a) => a.id === tenantId)) {
@@ -129,7 +129,7 @@ export async function requireTenantAlunoContext():
       { status: 400 },
     );
   }
-  const platform = await readPlatformRegistry();
+  const platform = await readPlatformRegistryPublic();
   const tenantId =
     resolveTenantCookieRaw(platform.academias, tenantRaw) ?? tenantRaw;
   if (!platform.academias.some((a) => a.id === tenantId)) {

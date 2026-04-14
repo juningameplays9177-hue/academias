@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "platformSettings": {
+    "sitePublicoDesligado": false
+  },
+  "academias": [
+    {
+      "id": "acad_beira_rio",
+      "nome": "Beira Rio Fit",
+      "slug": "beira-rio-fit",
+      "status": "ativo",
+      "logoUrl": null,
+      "plataformaDesligada": false,
+      "email": "recepcao@beirariofit.com.br",
+      "cidade": "Rio de Janeiro",
+      "estado": "RJ"
+    },
+    {
+      "id": "acad_iron_moema",
+      "nome": "Iron House · Moema",
+      "slug": "iron-house-moema",
+      "status": "ativo",
+      "logoUrl": null,
+      "plataformaDesligada": false,
+      "email": "contato@ironhousemoema.com.br",
+      "cidade": "São Paulo",
+      "estado": "SP"
+    },
+    {
+      "id": "acad_2f0f072a3d3c",
+      "nome": "Maxuel",
+      "slug": "maxuel",
+      "status": "ativo",
+      "logoUrl": null,
+      "plataformaDesligada": false,
+      "email": "maxuel@gmail.com",
+      "cidade": "Rio de Janeiro",
+      "estado": "RJ",
+      "googleMapsUrl": "https://maps.app.goo.gl/J9zahdmppTEjibta7",
+      "endereco": null,
+      "telefone": "21960163346",
+      "instagram": "@Beirariofit",
+      "tagline": null,
+      "corPrimaria": "#ffffff",
+      "metaDescription": null,
+      "corPrimariaSecundaria": "#ffffff",
+      "corPrimariaSuave": "#ffffff",
+      "corFundo": "#ffffff",
+      "corTexto": "#ffffff"
+    }
+  ],
+  "users": [
+    {
+      "id": "usr-ultra-1",
+      "email": "ultra@academia.com",
+      "password": "123456",
+      "name": "Master Admin",
+      "role": "ultra_admin",
+      "status": "ativo",
+      "academiaId": null
+    }
+  ]
+}

@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { readPlatformRegistry } from "@/lib/db/file-store";
+import { readPlatformRegistryPublic } from "@/lib/db/file-store";
 
 /** Lista academias ativas para o hub público (seleção visual antes do login). */
 export async function GET() {
-  const platform = await readPlatformRegistry();
+  const platform = await readPlatformRegistryPublic();
   const academias = (platform.academias ?? [])
     .filter((a) => a.status === "ativo" && !a.plataformaDesligada)
     .map((a) => ({

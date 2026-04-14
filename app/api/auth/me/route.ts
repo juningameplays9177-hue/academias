@@ -8,7 +8,7 @@ import {
   TENANT_COOKIE_NAME,
   tenantCookieOptions,
 } from "@/lib/auth/tenant-cookie";
-import { readPlatformRegistry } from "@/lib/db/file-store";
+import { readPlatformRegistryPublic } from "@/lib/db/file-store";
 import { isRoleId } from "@/lib/rbac/roles";
 import { recordToTenantAcademia } from "@/lib/tenant/branding";
 
@@ -20,7 +20,7 @@ export async function GET() {
   const session = token ? decodeSessionPayload(token) : null;
   const tenantCookieRaw =
     cookieStore.get(TENANT_COOKIE_NAME)?.value?.trim() || null;
-  const platform = await readPlatformRegistry();
+  const platform = await readPlatformRegistryPublic();
   const memberships = session?.memberships ?? [];
   const userRole = session?.role ?? "";
   const canUseAnyTenant = isRoleId(userRole) && userRole === "ultra_admin";

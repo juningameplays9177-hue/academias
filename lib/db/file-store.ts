@@ -23,6 +23,11 @@ const TENANTS_DIR = path.join(DATA_DIR, "tenants");
 const PLATFORM_PATH = path.join(DATA_DIR, "platform.json");
 /** Só flags + ids/slugs — usado pelo proxy para não parsear `platform.json` gigante (logos base64). */
 const PROXY_PLATFORM_PATH = path.join(DATA_DIR, "proxy-platform.json");
+/**
+ * Cópia “quente” do registro (users + academias) com logos pesados removidos.
+ * APIs como `/api/auth/me` e `/api/public/academias` leem isto — evita 503 por timeout no parse.
+ */
+const PLATFORM_PUBLIC_PATH = path.join(DATA_DIR, "platform-public.json");
 /** Arquivo único legado (pré-split); migrado automaticamente na primeira leitura. */
 const LEGACY_DB_PATH = path.join(DATA_DIR, "database.json");
 
@@ -191,6 +196,38 @@ async function saveProxyPlatformView(p: PlatformRegistry): Promise<void> {
   );
 }
 
+function stripHeavyLogoForPublic(
+  logoUrl: string | null | undefined,
+): string | null {
+  const u = (logoUrl ?? "").trim();
+  if (!u) return null;
+  if (u.startsWith("data:")) return null;
+  if (u.length > 6000) return null;
+  return u;
+}
+
+/** Mesmo conteúdo que `platform.json`, mas sem `data:`/URLs gigantes em `logoUrl` (parse rápido nas rotas públicas). */
+export function platformRegistryToPublicServerCopy(
+  p: PlatformRegistry,
+): PlatformRegistry {
+  return {
+    ...p,
+    academias: p.academias.map((a) => ({
+      ...a,
+      logoUrl: stripHeavyLogoForPublic(a.logoUrl),
+    })),
+  };
+}
+
+async function savePlatformPublicCopy(p: PlatformRegistry): Promise<void> {
+  const pub = platformRegistryToPublicServerCopy(p);
+  await fs.writeFile(
+    PLATFORM_PUBLIC_PATH,
+    JSON.stringify(pub, null, 2),
+    "utf-8",
+  );
+}
+
 async function loadTenant(academiaId: string): Promise<TenantDatabase> {
   const nested = tenantFilePath(academiaId);
   try {
@@ -294,6 +331,7 @@ export async function persistMergedDatabase(merged: AppDatabase): Promise<void> 
   const { platform, tenants } = splitMergedToParts(merged);
   await savePlatform(platform);
   await saveProxyPlatformView(platform).catch(() => {});
+  await savePlatformPublicCopy(platform).catch(() => {});
 
   for (const [id, t] of tenants) {
     await saveTenant(id, t);
@@ -448,6 +486,19 @@ export async function readPlatformRegistryForProxy(): Promise<PlatformRegistryPr
     return view;
   } catch {
     return null;
+  }
+}
+
+/**
+ * Leitura para rotas quentes (hub, `/api/auth/me`, público). Prefere `platform-public.json`
+ * (sem logos base64); se ausente, usa `readPlatformRegistry()`.
+ */
+export async function readPlatformRegistryPublic(): Promise<PlatformRegistry> {
+  try {
+    const raw = await fs.readFile(PLATFORM_PUBLIC_PATH, "utf-8");
+    return JSON.parse(raw) as PlatformRegistry;
+  } catch {
+    return readPlatformRegistry();
   }
 }
 

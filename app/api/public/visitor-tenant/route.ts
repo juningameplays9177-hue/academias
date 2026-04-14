@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { TENANT_COOKIE_NAME, tenantCookieOptions } from "@/lib/auth/tenant-cookie";
-import { readPlatformRegistry } from "@/lib/db/file-store";
+import { readPlatformRegistryPublic } from "@/lib/db/file-store";
 import { isAcademiaPlataformaDesligada } from "@/lib/platform/academia-access";
 import { recordToTenantAcademia } from "@/lib/tenant/branding";
 
@@ -9,7 +9,7 @@ const MAX_AGE = 60 * 60 * 24 * 30;
 
 export async function POST(request: Request) {
   const body = (await request.json()) as { academiaId?: string; slug?: string };
-  const platform = await readPlatformRegistry();
+  const platform = await readPlatformRegistryPublic();
 
   let a = null as (typeof platform.academias)[0] | null;
   const rawId = typeof body.academiaId === "string" ? body.academiaId.trim() : "";
