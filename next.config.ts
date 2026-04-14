@@ -19,6 +19,7 @@ const nextConfig: NextConfig = {
       { source: "/select-academia", headers: [noStore] },
       { source: "/manutencao", headers: [noStore] },
       { source: "/manutencao-unidade", headers: [noStore] },
+      { source: "/ultra-admin", headers: [noStore] },
       {
         source: "/ultra-admin/:path*",
         headers: [noStore],

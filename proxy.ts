@@ -118,6 +118,19 @@ function isNextFlightRequest(request: NextRequest): boolean {
 }
 
 /**
+ * Carregamento de página real (aba / barra de endereço). Deve receber HTML completo;
+ * sem isto, headers RSC vindos de CDN/prefetch fazem o proxy pular o rewrite e o browser
+ * exibe `:HL[...]` (payload Flight cru) em rotas como `/ultra-admin`.
+ */
+function isBrowserDocumentNavigation(request: NextRequest): boolean {
+  const mode = request.headers.get("Sec-Fetch-Mode");
+  if (mode === "navigate") return true;
+  const dest = request.headers.get("Sec-Fetch-Dest");
+  if (dest === "document") return true;
+  return false;
+}
+
+/**
  * Força o App Router a tratar como navegação documento (HTML), não payload Flight * (`:HL[...]` na tela). Usado em rewrite interno.
  */
 function forceDocumentHtmlRequest(request: NextRequest): Headers {
@@ -177,15 +190,18 @@ async function runProxy(request: NextRequest) {
   if (pathname === "/api/health") return NextResponse.next();
 
   /**
-   * Navegação “documento” que chega sem headers Flight corretos (CDN, aba nova,
-   * prefetch) → Next pode responder só com stream RSC. Reescreve com Accept HTML
-   * e sem headers de router RSC para forçar página completa.
+   * Navegação “documento” que chega com headers de Flight (CDN, prefetch) → Next pode
+   * responder só com stream RSC. Reescreve com Accept HTML e sem headers RSC.
+   * `isBrowserDocumentNavigation`: mesmo com `rsc: 1` espúrio, aba real exige HTML.
    */
+  const shouldForceFullDocumentHtml =
+    pathNeedsForcedHtmlRewrite(pathname) &&
+    (isBrowserDocumentNavigation(request) || !isNextFlightRequest(request));
+
   if (
     request.method === "GET" &&
     !pathname.startsWith("/api/") &&
-    !isNextFlightRequest(request) &&
-    pathNeedsForcedHtmlRewrite(pathname) &&
+    shouldForceFullDocumentHtml &&
     !request.headers.get(FORCED_HTML_GUARD)
   ) {
     const clean = request.nextUrl.clone();
