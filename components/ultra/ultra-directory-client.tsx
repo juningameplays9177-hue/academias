@@ -84,22 +84,29 @@ export function UltraDirectoryClient() {
   const [studentDraft, setStudentDraft] = useState<Record<string, StudentStatus>>(
     {},
   );
+  const [moveTarget, setMoveTarget] = useState<UnifiedAccount | null>(null);
+  const [moveAcademiaId, setMoveAcademiaId] = useState("");
+  const [movingAcademia, setMovingAcademia] = useState(false);
 
   useEffect(() => {
-    if (!createOpen) return;
     let cancelled = false;
     (async () => {
       const res = await fetch("/api/academias", { cache: "no-store" });
-      const j = (await res.json()) as { academias?: { id: string; nome: string }[] };
+      const j = (await res.json()) as {
+        academias?: { id: string; nome: string; status?: string }[];
+      };
       if (cancelled) return;
-      const opts = j.academias ?? [];
-      setAcademyOptions(opts);
-      if (opts.length) setCAcademiaId((prev) => prev || opts[0].id);
+      const opts = (j.academias ?? []).filter((a) => (a.status ?? "ativo") === "ativo");
+      setAcademyOptions(opts.map((a) => ({ id: a.id, nome: a.nome })));
+      if (opts.length) {
+        setCAcademiaId((prev) => prev || opts[0].id);
+        setMoveAcademiaId((prev) => prev || opts[0].id);
+      }
     })();
     return () => {
       cancelled = true;
     };
-  }, [createOpen]);
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -345,6 +352,67 @@ export function UltraDirectoryClient() {
     }
   }
 
+  async function submitMoveAcademia() {
+    if (!moveTarget) return;
+    if (!moveAcademiaId) {
+      pushToast({
+        type: "error",
+        title: "Academia",
+        description: "Selecione a academia destino.",
+      });
+      return;
+    }
+    setMovingAcademia(true);
+    try {
+      if (moveTarget.kind === "staff") {
+        const ok = await patchStaff(moveTarget.id, { academiaId: moveAcademiaId });
+        if (!ok) return;
+      } else if (moveTarget.kind === "professor") {
+        const res = await fetch(
+          `/api/ultra-admin/professor/${encodeURIComponent(moveTarget.id)}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ academiaId: moveAcademiaId }),
+          },
+        );
+        const body = (await res.json()) as { error?: string };
+        if (!res.ok) {
+          pushToast({
+            type: "error",
+            title: "Professor",
+            description: body.error,
+          });
+          return;
+        }
+      } else if (moveTarget.kind === "student") {
+        const res = await fetch(
+          `/api/ultra-admin/student/${encodeURIComponent(moveTarget.id)}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ academiaId: moveAcademiaId }),
+          },
+        );
+        const body = (await res.json()) as { error?: string };
+        if (!res.ok) {
+          pushToast({
+            type: "error",
+            title: "Aluno",
+            description: body.error,
+          });
+          return;
+        }
+      }
+      pushToast({ type: "success", title: "Academia atualizada" });
+      setMoveTarget(null);
+      void load();
+      void refresh();
+    } finally {
+      setMovingAcademia(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -439,6 +507,19 @@ export function UltraDirectoryClient() {
                           >
                             Papel
                           </Button>
+                          {row.role === "admin" ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="border-white/20 text-xs text-white"
+                              onClick={() => {
+                                setMoveTarget(row);
+                                setMoveAcademiaId(row.academiaId ?? academyOptions[0]?.id ?? "");
+                              }}
+                            >
+                              Academia
+                            </Button>
+                          ) : null}
                           <Button
                             type="button"
                             variant="outline"
@@ -479,6 +560,17 @@ export function UltraDirectoryClient() {
                             type="button"
                             variant="outline"
                             className="border-white/20 text-xs text-white"
+                            onClick={() => {
+                              setMoveTarget(row);
+                              setMoveAcademiaId(row.academiaId ?? academyOptions[0]?.id ?? "");
+                            }}
+                          >
+                            Academia
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="border-white/20 text-xs text-white"
                             onClick={() => void toggleProfessorBlock(row)}
                           >
                             {row.loginBloqueado ? "Desbloquear" : "Bloquear"}
@@ -498,6 +590,17 @@ export function UltraDirectoryClient() {
                       ) : null}
                       {row.kind === "student" ? (
                         <div className="flex flex-wrap items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="border-white/20 text-xs text-white"
+                            onClick={() => {
+                              setMoveTarget(row);
+                              setMoveAcademiaId(row.academiaId ?? academyOptions[0]?.id ?? "");
+                            }}
+                          >
+                            Academia
+                          </Button>
                           <select
                             className="rounded-lg border border-white/15 bg-black px-2 py-1.5 text-xs text-white"
                             value={
@@ -638,6 +741,45 @@ export function UltraDirectoryClient() {
               </Button>
               <Button type="button" onClick={() => void submitRole()}>
                 Salvar
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
+
+      <Modal
+        open={Boolean(moveTarget)}
+        title="Alterar academia do usuário"
+        description="Move o vínculo principal da conta para outra unidade ativa."
+        onClose={() => setMoveTarget(null)}
+      >
+        {moveTarget ? (
+          <div className="space-y-3 text-sm text-neutral-200">
+            <p>
+              <span className="text-neutral-400">Conta:</span> {moveTarget.nome} (
+              {moveTarget.email})
+            </p>
+            <select
+              className="w-full rounded-lg border border-white/15 bg-black px-3 py-2 text-white"
+              value={moveAcademiaId}
+              onChange={(e) => setMoveAcademiaId(e.target.value)}
+            >
+              {academyOptions.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.nome}
+                </option>
+              ))}
+            </select>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setMoveTarget(null)}>
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                disabled={movingAcademia}
+                onClick={() => void submitMoveAcademia()}
+              >
+                {movingAcademia ? "Salvando..." : "Salvar"}
               </Button>
             </div>
           </div>

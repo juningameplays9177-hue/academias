@@ -13,6 +13,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
   const body = (await request.json()) as {
     contaBloqueada?: boolean;
     newPassword?: string;
+    academiaId?: string;
   };
 
   const db = await readDatabase();
@@ -25,6 +26,20 @@ export async function PATCH(request: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Senha mínima de 6 caracteres." }, { status: 400 });
   }
 
+  let nextAcademiaId = db.professors[idx].academiaId;
+  if (body.academiaId !== undefined) {
+    const targetId = body.academiaId.trim();
+    const target = db.academias.find((a) => a.id === targetId) ?? null;
+    if (!target || target.status !== "ativo") {
+      return NextResponse.json(
+        { error: "Academia destino inválida ou inativa." },
+        { status: 400 },
+      );
+    }
+    nextAcademiaId = target.id;
+  }
+  const movingAcademia = nextAcademiaId !== db.professors[idx].academiaId;
+
   await mutateDatabase((draft) => {
     const p = draft.professors.find((x) => x.id === id);
     if (!p) return;
@@ -34,6 +49,14 @@ export async function PATCH(request: Request, ctx: Ctx) {
     if (body.newPassword !== undefined) {
       if (body.newPassword.length >= 6) {
         p.senhaPlataforma = body.newPassword;
+      }
+    }
+    if (movingAcademia) {
+      p.academiaId = nextAcademiaId;
+      for (const s of draft.students) {
+        if (s.professorId === id && s.academiaId !== nextAcademiaId) {
+          s.professorId = null;
+        }
       }
     }
   });

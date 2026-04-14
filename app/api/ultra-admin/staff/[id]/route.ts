@@ -23,6 +23,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
     role?: RoleId;
     status?: AuthStaffStatus;
     newPassword?: string;
+    academiaId?: string;
   };
 
   const db = await readDatabase();
@@ -67,6 +68,35 @@ export async function PATCH(request: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Status inválido." }, { status: 400 });
   }
 
+  const nextRole = body.role ?? target.role;
+  let nextAcademiaId = target.academiaId;
+  if (nextRole === "ultra_admin") {
+    if (body.academiaId !== undefined && body.academiaId.trim().length > 0) {
+      return NextResponse.json(
+        { error: "Ultra Admin não pode ter academia vinculada." },
+        { status: 400 },
+      );
+    }
+    nextAcademiaId = null;
+  } else if (nextRole === "admin") {
+    if (body.academiaId !== undefined) {
+      nextAcademiaId = body.academiaId.trim() || null;
+    }
+    if (!nextAcademiaId) {
+      return NextResponse.json(
+        { error: "Informe a academia do administrador." },
+        { status: 400 },
+      );
+    }
+    const targetAcademia = db.academias.find((a) => a.id === nextAcademiaId) ?? null;
+    if (!targetAcademia || targetAcademia.status !== "ativo") {
+      return NextResponse.json(
+        { error: "Academia destino inválida ou inativa." },
+        { status: 400 },
+      );
+    }
+  }
+
   await mutateDatabase((draft) => {
     const u = draft.users.find((x) => x.id === id);
     if (!u) return;
@@ -74,6 +104,11 @@ export async function PATCH(request: Request, ctx: Ctx) {
     if (body.role !== undefined) u.role = body.role;
     if (body.status !== undefined) {
       u.status = body.status;
+    }
+    if (nextRole === "ultra_admin") {
+      u.academiaId = null;
+    } else if (nextRole === "admin") {
+      u.academiaId = nextAcademiaId;
     }
     if (body.newPassword !== undefined && body.newPassword.length >= 6) {
       u.password = body.newPassword;
