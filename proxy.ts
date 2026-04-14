@@ -144,7 +144,7 @@ function pathNeedsForcedHtmlRewrite(pathname: string): boolean {
   return (
     pathname === "/" ||
     pathname.startsWith("/login") ||
-    pathname.startsWith("/select-academia") ||
+    /** Hub: SSR puro; rewrite aqui deixava navegação “pendurada” em algumas CDNs. */
     pathname.startsWith("/ultra-admin") ||
     pathname.startsWith("/admin") ||
     pathname.startsWith("/professor") ||

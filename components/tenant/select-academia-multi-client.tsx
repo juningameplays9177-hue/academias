@@ -3,8 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowRight, faBuilding } from "@fortawesome/free-solid-svg-icons";
 import type { TenantMembership } from "@/lib/auth/session-cookie";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
@@ -13,6 +11,26 @@ import { homePathForRole } from "@/lib/rbac/home-path";
 import { isRoleId, type RoleId } from "@/lib/rbac/roles";
 
 const FETCH_MS = 25_000;
+
+function BuildingIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+      className={className}
+      aria-hidden
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z"
+      />
+    </svg>
+  );
+}
 
 function fetchNoStore(url: string) {
   const ctrl = new AbortController();
@@ -151,7 +169,7 @@ export function SelectAcademiaMultiClient({ initialUser }: Props) {
           >
             <div className="flex items-start gap-3">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/10 text-neutral-300">
-                <FontAwesomeIcon icon={faBuilding} className="text-lg" />
+                <BuildingIcon className="h-6 w-6" />
               </div>
               <div className="min-w-0 flex-1">
                 <h3 className="truncate text-lg font-semibold text-white">
@@ -183,7 +201,9 @@ export function SelectAcademiaMultiClient({ initialUser }: Props) {
               ) : (
                 <>
                   Entrar nesta academia
-                  <FontAwesomeIcon icon={faArrowRight} className="text-xs" />
+                  <span aria-hidden className="text-xs">
+                    →
+                  </span>
                 </>
               )}
             </Button>
