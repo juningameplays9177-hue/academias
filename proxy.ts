@@ -13,6 +13,8 @@ import { canAccessPath, canUseAdminApi } from "@/lib/rbac/route-guards";
 import { isRoleId, type RoleId } from "@/lib/rbac/roles";
 import { resolveTenantCookieRaw } from "@/lib/tenancy/tenant-cookie-resolve";
 
+const FORCED_HTML_GUARD = "x-powerfit-forced-html";
+
 const PUBLIC_PATHS = new Set([
   "/login",
   "/site",
@@ -115,16 +117,43 @@ function isNextFlightRequest(request: NextRequest): boolean {
   return false;
 }
 
-/** Navegação HTML típica — não é cliente RSC pedindo `text/x-component`. */
-function looksLikeBrowserDocumentNavigation(request: NextRequest): boolean {
-  if (isNextFlightRequest(request)) return false;
-  const dest = request.headers.get("Sec-Fetch-Dest");
-  if (dest === "document") return true;
-  const accept = request.headers.get("Accept") ?? "";
-  if (accept.includes("text/html") && !accept.includes("text/x-component")) {
-    return true;
+/**
+ * Força o App Router a tratar como navegação documento (HTML), não payload Flight * (`:HL[...]` na tela). Usado em rewrite interno.
+ */
+function forceDocumentHtmlRequest(request: NextRequest): Headers {
+  const h = new Headers(request.headers);
+  h.set(
+    "Accept",
+    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+  );
+  for (const key of [
+    "rsc",
+    "RSC",
+    "Next-Router-Prefetch",
+    "Next-Router-Segment-Prefetch",
+    "Next-Router-State-Tree",
+    "Next-HMR-Refresh",
+  ]) {
+    h.delete(key);
   }
-  return false;
+  return h;
+}
+
+/** Rotas que devem devolver documento HTML completo (não stream RSC “cru”). */
+function pathNeedsForcedHtmlRewrite(pathname: string): boolean {
+  return (
+    pathname === "/" ||
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/select-academia") ||
+    pathname.startsWith("/ultra-admin") ||
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/professor") ||
+    pathname.startsWith("/aluno") ||
+    pathname.startsWith("/a/") ||
+    pathname.startsWith("/site") ||
+    pathname.startsWith("/mensalidade") ||
+    pathname.startsWith("/manutencao-unidade")
+  );
 }
 
 export async function proxy(request: NextRequest) {
@@ -140,18 +169,24 @@ export async function proxy(request: NextRequest) {
   if (pathname === "/api/health") return NextResponse.next();
 
   /**
-   * Navegação documento com parâmetros internos do App Router / bookmark / CDN
-   * sem headers Flight → resposta RSC “crua” na tela (`:HL[...]`).
+   * Navegação “documento” que chega sem headers Flight corretos (CDN, aba nova,
+   * prefetch) → Next pode responder só com stream RSC. Reescreve com Accept HTML
+   * e sem headers de router RSC para forçar página completa.
    */
   if (
     request.method === "GET" &&
     !pathname.startsWith("/api/") &&
-    looksLikeBrowserDocumentNavigation(request)
+    !isNextFlightRequest(request) &&
+    pathNeedsForcedHtmlRewrite(pathname) &&
+    !request.headers.get(FORCED_HTML_GUARD)
   ) {
     const clean = request.nextUrl.clone();
-    if (stripDocumentShouldNotCarryRscParams(clean)) {
-      return NextResponse.rewrite(clean);
-    }
+    stripDocumentShouldNotCarryRscParams(clean);
+    const headers = forceDocumentHtmlRequest(request);
+    headers.set(FORCED_HTML_GUARD, "1");
+    return NextResponse.rewrite(clean, {
+      request: { headers },
+    });
   }
 
   const p = await loadPlatformOnce();
