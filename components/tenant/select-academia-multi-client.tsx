@@ -62,7 +62,7 @@ export function SelectAcademiaMultiClient({ initialUser }: Props) {
   const router = useRouter();
   const { pushToast } = useToast();
   const [choices, setChoices] = useState<TenantMembership[]>(() =>
-    initialUser.needsTenantSelection ? (initialUser.memberships ?? []) : [],
+    initialUser.needsTenantSelection === true ? (initialUser.memberships ?? []) : [],
   );
   const [user, setUser] = useState<MeUser | null>(() => initialUser);
   const [picking, setPicking] = useState<string | null>(null);
@@ -73,14 +73,23 @@ export function SelectAcademiaMultiClient({ initialUser }: Props) {
       try {
         const meRes = await fetchNoStore("/api/auth/me");
         if (cancelled || !meRes.ok) return;
-        const meData = (await meRes.json()) as MeTenantChoices;
-        if (meData.user) {
-          setUser(meData.user);
-          if (meData.user.needsTenantSelection) {
-            setChoices(meData.user.memberships ?? []);
-          } else {
-            setChoices([]);
-          }
+        let meData: MeTenantChoices;
+        try {
+          meData = (await meRes.json()) as MeTenantChoices;
+        } catch {
+          return;
+        }
+        if (!meData.user) {
+          setUser(null);
+          setChoices([]);
+          return;
+        }
+        setUser(meData.user);
+        const mustPick = meData.user.needsTenantSelection === true;
+        if (mustPick) {
+          setChoices(meData.user.memberships ?? []);
+        } else {
+          setChoices([]);
         }
       } catch {
         /* mantém SSR */
@@ -92,7 +101,7 @@ export function SelectAcademiaMultiClient({ initialUser }: Props) {
   }, []);
 
   useEffect(() => {
-    if (!user || user.needsTenantSelection) return;
+    if (!user || user.needsTenantSelection === true) return;
     const role: RoleId = isRoleId(user.role) ? user.role : "aluno";
     router.replace(homePathForRole(role));
     router.refresh();
@@ -106,12 +115,19 @@ export function SelectAcademiaMultiClient({ initialUser }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ academiaId }),
       });
-      const body = (await res.json()) as { redirectTo?: string; error?: string };
+      let body: { redirectTo?: string; error?: string } = {};
+      try {
+        body = (await res.json()) as { redirectTo?: string; error?: string };
+      } catch {
+        body = {
+          error: res.ok ? undefined : "Resposta inválida do servidor.",
+        };
+      }
       if (!res.ok) {
         pushToast({
           type: "error",
           title: "Não foi possível entrar",
-          description: body.error,
+          description: body.error ?? `Erro ${res.status}`,
         });
         return;
       }
@@ -127,7 +143,7 @@ export function SelectAcademiaMultiClient({ initialUser }: Props) {
     }
   }
 
-  if (user && !user.needsTenantSelection) {
+  if (user && user.needsTenantSelection !== true) {
     return (
       <p className="text-center text-sm text-neutral-500">Redirecionando…</p>
     );
