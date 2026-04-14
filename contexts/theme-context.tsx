@@ -56,10 +56,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function useTheme() {
+/**
+ * Modo claro/escuro da interface (persistido em `localStorage`).
+ * Para cores da unidade (marca), use `useTenantTheme` em `@/hooks/use-tenant-theme`.
+ */
+export function useAppearanceTheme() {
   const ctx = useContext(ThemeContext);
   if (!ctx) {
-    throw new Error("useTheme must be used within ThemeProvider");
+    throw new Error("useAppearanceTheme must be used within ThemeProvider");
   }
   return ctx;
 }
+
+/** Alias estável: mesmo hook que `useAppearanceTheme`. */
+export const useTheme = useAppearanceTheme;

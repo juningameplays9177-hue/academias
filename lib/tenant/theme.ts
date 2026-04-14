@@ -45,7 +45,7 @@ function mixToward(fg: string, bg: string, t: number): string {
 
 /**
  * Tema completo da unidade (cores de marca + shell white-label).
- * Usado por `useTheme`, `TenantHeadEffects` e shells (`DashboardShell`, site).
+ * Usado por `useTenantTheme`, `TenantHeadEffects` e shells (`DashboardShell`, site).
  */
 export function tenantTheme(t: TenantAcademia | null): TenantTheme {
   const pal = tenantPalette(t);

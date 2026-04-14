@@ -9,7 +9,7 @@ import {
   faPlus,
   faTrash,
 } from "@fortawesome/free-solid-svg-icons";
-import { CreateAcademyModal } from "@/components/CreateAcademyModal";
+import { CreateAcademyModal } from "@/components/ultra/create-academy-modal";
 import { Button } from "@/components/ui/button";
 import { useAcademies, type AcademiaDTO } from "@/hooks/useAcademies";
 import { useAuth } from "@/hooks/useAuth";

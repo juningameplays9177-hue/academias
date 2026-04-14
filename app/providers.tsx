@@ -5,7 +5,11 @@ import { ThemeProvider } from "@/contexts/theme-context";
 import { ToastProvider } from "@/contexts/toast-context";
 import { TenantHeadEffects } from "@/components/tenant/tenant-head-effects";
 
-/** Provider de sessão + efeitos globais da unidade (título, meta, favicon, variáveis de tema). Use `useTheme()` / `useTenant()`. */
+/**
+ * Sessão + efeitos globais da unidade (título, meta, favicon, variáveis de marca).
+ * Claro/escuro: `useAppearanceTheme` ou `useTheme` em `@/contexts/theme-context`.
+ * Marca da academia: `useTenantTheme` em `@/hooks/use-tenant-theme` (e `useTenant`).
+ */
 export function TenantProvider({ children }: { children: React.ReactNode }) {
   return (
     <AuthSessionProvider>

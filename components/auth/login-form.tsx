@@ -11,6 +11,11 @@ import {
   faEyeSlash,
   faSpinner,
 } from "@fortawesome/free-solid-svg-icons";
+import {
+  AUTH_INPUT_ICON_CLASS,
+  AUTH_INPUT_SHELL,
+  AUTH_PASSWORD_TOGGLE_CLASS,
+} from "@/components/auth/auth-field-classes";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/contexts/toast-context";
 
@@ -21,9 +26,6 @@ type Props = {
 function formatUnidadeLabel(slug: string) {
   return slug.replace(/-/g, " ");
 }
-
-const inputShell =
-  "w-full rounded-xl border border-border bg-background py-3 text-sm text-foreground shadow-sm outline-none transition placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/25 dark:bg-card";
 
 export function LoginForm({ initialEmail = "" }: Props) {
   const router = useRouter();
@@ -129,7 +131,7 @@ export function LoginForm({ initialEmail = "" }: Props) {
         <div className="relative">
           <FontAwesomeIcon
             icon={faEnvelope}
-            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
+            className={AUTH_INPUT_ICON_CLASS}
             aria-hidden
           />
           <input
@@ -140,7 +142,7 @@ export function LoginForm({ initialEmail = "" }: Props) {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className={`${inputShell} pl-11 pr-4`}
+            className={`${AUTH_INPUT_SHELL} pl-11 pr-4`}
             placeholder="voce@email.com"
             aria-label="E-mail"
           />
@@ -154,7 +156,7 @@ export function LoginForm({ initialEmail = "" }: Props) {
         <div className="relative">
           <FontAwesomeIcon
             icon={faLock}
-            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
+            className={AUTH_INPUT_ICON_CLASS}
             aria-hidden
           />
           <input
@@ -165,13 +167,13 @@ export function LoginForm({ initialEmail = "" }: Props) {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className={`${inputShell} pl-11 pr-12`}
+            className={`${AUTH_INPUT_SHELL} pl-11 pr-12`}
             placeholder="••••••"
             aria-label="Senha"
           />
           <button
             type="button"
-            className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted transition hover:bg-accent-soft hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-accent"
+            className={AUTH_PASSWORD_TOGGLE_CLASS}
             onClick={() => setShowPassword((v) => !v)}
             aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
           >

@@ -12,11 +12,13 @@ import {
   faEyeSlash,
   faSpinner,
 } from "@fortawesome/free-solid-svg-icons";
+import {
+  AUTH_INPUT_ICON_CLASS,
+  AUTH_INPUT_SHELL,
+  AUTH_PASSWORD_TOGGLE_CLASS,
+} from "@/components/auth/auth-field-classes";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/contexts/toast-context";
-
-const inputShell =
-  "w-full rounded-xl border border-border bg-background py-3 text-sm text-foreground shadow-sm outline-none transition placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/25 dark:bg-card";
 
 type Props = {
   onRegistered: (email: string) => void;
@@ -63,7 +65,7 @@ export function RegisterForm({ onRegistered }: Props) {
         pushToast({
           type: "error",
           title: "Cadastro não concluído",
-          description: body.error,
+          description: body.error ?? "Não foi possível concluir o cadastro. Tente de novo.",
         });
         return;
       }
@@ -92,7 +94,7 @@ export function RegisterForm({ onRegistered }: Props) {
   }
 
   return (
-    <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
+    <form onSubmit={(e) => void handleSubmit(e)} className="space-y-6">
       <div>
         <p className="text-sm leading-relaxed text-muted">
           Você entra como <strong className="font-semibold text-accent">aluno</strong>{" "}
@@ -105,7 +107,7 @@ export function RegisterForm({ onRegistered }: Props) {
         <div className="relative mt-1.5">
           <FontAwesomeIcon
             icon={faUser}
-            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
+            className={AUTH_INPUT_ICON_CLASS}
             aria-hidden
           />
           <input
@@ -116,7 +118,7 @@ export function RegisterForm({ onRegistered }: Props) {
             required
             value={nome}
             onChange={(e) => setNome(e.target.value)}
-            className={`${inputShell} pl-11 pr-4`}
+            className={`${AUTH_INPUT_SHELL} pl-11 pr-4`}
             placeholder="Como no documento"
           />
         </div>
@@ -127,7 +129,7 @@ export function RegisterForm({ onRegistered }: Props) {
         <div className="relative mt-1.5">
           <FontAwesomeIcon
             icon={faEnvelope}
-            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
+            className={AUTH_INPUT_ICON_CLASS}
             aria-hidden
           />
           <input
@@ -138,7 +140,7 @@ export function RegisterForm({ onRegistered }: Props) {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className={`${inputShell} pl-11 pr-4`}
+            className={`${AUTH_INPUT_SHELL} pl-11 pr-4`}
             placeholder="voce@email.com"
           />
         </div>
@@ -149,7 +151,7 @@ export function RegisterForm({ onRegistered }: Props) {
         <div className="relative mt-1.5">
           <FontAwesomeIcon
             icon={faLock}
-            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
+            className={AUTH_INPUT_ICON_CLASS}
             aria-hidden
           />
           <input
@@ -161,12 +163,12 @@ export function RegisterForm({ onRegistered }: Props) {
             minLength={6}
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
-            className={`${inputShell} pl-11 pr-12`}
+            className={`${AUTH_INPUT_SHELL} pl-11 pr-12`}
             placeholder="Mínimo 6 caracteres"
           />
           <button
             type="button"
-            className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted transition hover:bg-accent-soft hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-accent"
+            className={AUTH_PASSWORD_TOGGLE_CLASS}
             onClick={() => setShowSenha((v) => !v)}
             aria-label={showSenha ? "Ocultar senha" : "Mostrar senha"}
           >
@@ -180,7 +182,7 @@ export function RegisterForm({ onRegistered }: Props) {
         <div className="relative mt-1.5">
           <FontAwesomeIcon
             icon={faLock}
-            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
+            className={AUTH_INPUT_ICON_CLASS}
             aria-hidden
           />
           <input
@@ -192,12 +194,12 @@ export function RegisterForm({ onRegistered }: Props) {
             minLength={6}
             value={confirmarSenha}
             onChange={(e) => setConfirmarSenha(e.target.value)}
-            className={`${inputShell} pl-11 pr-12`}
+            className={`${AUTH_INPUT_SHELL} pl-11 pr-12`}
             placeholder="Digite a senha novamente"
           />
           <button
             type="button"
-            className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted transition hover:bg-accent-soft hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-accent"
+            className={AUTH_PASSWORD_TOGGLE_CLASS}
             onClick={() => setShowConfirmar((v) => !v)}
             aria-label={showConfirmar ? "Ocultar confirmação de senha" : "Mostrar confirmação de senha"}
           >
@@ -214,7 +216,7 @@ export function RegisterForm({ onRegistered }: Props) {
         <div className="relative mt-1.5">
           <FontAwesomeIcon
             icon={faIdCard}
-            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
+            className={AUTH_INPUT_ICON_CLASS}
             aria-hidden
           />
           <input
@@ -225,7 +227,7 @@ export function RegisterForm({ onRegistered }: Props) {
             required
             value={cpf}
             onChange={(e) => setCpf(e.target.value)}
-            className={`${inputShell} pl-11 pr-4`}
+            className={`${AUTH_INPUT_SHELL} pl-11 pr-4`}
             placeholder="000.000.000-00"
           />
         </div>
@@ -236,7 +238,7 @@ export function RegisterForm({ onRegistered }: Props) {
         <div className="relative mt-1.5">
           <FontAwesomeIcon
             icon={faPhone}
-            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
+            className={AUTH_INPUT_ICON_CLASS}
             aria-hidden
           />
           <input
@@ -248,7 +250,7 @@ export function RegisterForm({ onRegistered }: Props) {
             required
             value={celular}
             onChange={(e) => setCelular(e.target.value)}
-            className={`${inputShell} pl-11 pr-4`}
+            className={`${AUTH_INPUT_SHELL} pl-11 pr-4`}
             placeholder="(11) 98765-4321"
           />
         </div>
@@ -256,7 +258,7 @@ export function RegisterForm({ onRegistered }: Props) {
 
       <Button
         type="submit"
-        className="mt-3 w-full rounded-xl py-3 text-sm font-semibold"
+        className="w-full rounded-xl py-3 text-sm font-semibold"
         disabled={submitting}
         aria-busy={submitting}
       >
