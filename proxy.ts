@@ -108,6 +108,7 @@ export async function proxy(request: NextRequest) {
   if (pathname === "/api/site/public-status") return NextResponse.next();
   if (pathname === "/api/site/tenant-plataforma-off") return NextResponse.next();
   if (pathname === "/manutencao") return NextResponse.next();
+  if (pathname === "/api/health") return NextResponse.next();
 
   /**
    * Navegação “normal” que chegou com `?_rsc=` na URL (bookmark, proxy, bug de cliente)
@@ -292,6 +293,13 @@ export async function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
+/**
+ * Não rodar proxy em APIs públicas/auth/site — evita 2× disco + parse na mesma navegação
+ * (ex.: hub chama /api/auth/me + /api/public/academias enquanto o documento já passou no proxy).
+ * Login/hub com site institucional off continuam permitidos no proxy; APIs acima não duplicam leitura de disco aqui.
+ */
 export const config = {
-  matcher: ["/((?!_next/static|_next/image).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|api/public/|api/auth/|api/site/).*)",
+  ],
 };
