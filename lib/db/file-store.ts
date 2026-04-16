@@ -484,34 +484,6 @@ export async function readPlatformRegistryForProxy(): Promise<PlatformRegistryPr
   const lite = await readProxyViewFromDisk(PROXY_PLATFORM_PATH);
   if (lite) return lite;
 
-  /**
-   * Fallback leve: `platform-public.json` (sem logos base64 pesados) antes de
-   * tentar `platform.json` completo.
-   */
-  try {
-    const st = await fs.stat(PLATFORM_PUBLIC_PATH);
-    if (
-      proxyRegistryReadCache &&
-      proxyRegistryReadCache.path === PLATFORM_PUBLIC_PATH &&
-      proxyRegistryReadCache.mtimeMs === st.mtimeMs &&
-      proxyRegistryReadCache.size === Number(st.size)
-    ) {
-      return proxyRegistryReadCache.data;
-    }
-    const raw = await fs.readFile(PLATFORM_PUBLIC_PATH, "utf-8");
-    const pub = JSON.parse(raw) as PlatformRegistry;
-    const view = platformRegistryToProxyView(pub);
-    proxyRegistryReadCache = {
-      path: PLATFORM_PUBLIC_PATH,
-      mtimeMs: st.mtimeMs,
-      size: Number(st.size),
-      data: view,
-    };
-    return view;
-  } catch {
-    /* segue para fallback legado */
-  }
-
   try {
     const st = await fs.stat(PLATFORM_PATH);
     if (
@@ -589,16 +561,7 @@ export async function readPlatformRegistryPublic(): Promise<PlatformRegistry> {
   if (snap) return snap;
   const stripped = await readPlatformJsonAsPublicStrip();
   if (stripped) return stripped;
-  /**
-   * Último fallback sem migrações/escritas em disco para evitar timeout/503
-   * em rotas quentes quando o armazenamento da origem está degradado.
-   */
-  try {
-    return await loadPlatform();
-  } catch {
-    const { platform } = splitMergedToParts(createSeedDatabase());
-    return platform;
-  }
+  return readPlatformRegistry();
 }
 
 /** Lê só o cadastro global (academias + ultra), sem carregar tenants. */
