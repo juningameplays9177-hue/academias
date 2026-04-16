@@ -9,6 +9,7 @@ import {
   materializeTenantDatabaseFile,
   mutateDatabase,
   readDatabase,
+  readPlatformRegistryPublic,
   tenantStoreRelativePath,
 } from "@/lib/db/file-store";
 import type { AcademiaRecord } from "@/lib/db/types";
@@ -34,9 +35,9 @@ function assertUltra() {
 export async function GET() {
   const denied = await assertUltra();
   if (denied) return denied;
-  const db = await readDatabase();
+  const platform = await readPlatformRegistryPublic();
   return NextResponse.json({
-    academias: db.academias.map(serializeAcademia),
+    academias: platform.academias.map(serializeAcademia),
   });
 }
 
