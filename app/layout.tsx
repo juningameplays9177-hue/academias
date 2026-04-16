@@ -10,7 +10,7 @@ config.autoAddCss = false;
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-  preload: true,
+  preload: false,
 });
 
 const geistMono = Geist_Mono({

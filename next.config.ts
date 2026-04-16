@@ -9,6 +9,7 @@ const HTML_NO_STORE_SOURCES = [
   "/login",
   "/login/:path*",
   "/select-academia",
+  "/select-academia/:path*",
   "/manutencao",
   "/manutencao-unidade",
   "/ultra-admin",
