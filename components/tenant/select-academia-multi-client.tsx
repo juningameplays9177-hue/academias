@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { TenantMembership } from "@/lib/auth/session-cookie";
@@ -66,6 +66,7 @@ export function SelectAcademiaMultiClient({ initialUser }: Props) {
   );
   const [user, setUser] = useState<MeUser | null>(() => initialUser);
   const [picking, setPicking] = useState<string | null>(null);
+  const autoPickedAcademiaIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -106,6 +107,17 @@ export function SelectAcademiaMultiClient({ initialUser }: Props) {
     router.replace(homePathForRole(role));
     router.refresh();
   }, [user, router]);
+
+  useEffect(() => {
+    if (!user || user.needsTenantSelection !== true) return;
+    if (choices.length !== 1) return;
+    const only = choices[0];
+    if (!only?.academiaId) return;
+    if (picking) return;
+    if (autoPickedAcademiaIdRef.current === only.academiaId) return;
+    autoPickedAcademiaIdRef.current = only.academiaId;
+    void pick(only.academiaId);
+  }, [choices, picking, user]);
 
   async function pick(academiaId: string) {
     setPicking(academiaId);
