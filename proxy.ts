@@ -13,8 +13,6 @@ import { canAccessPath, canUseAdminApi } from "@/lib/rbac/route-guards";
 import { isRoleId, type RoleId } from "@/lib/rbac/roles";
 import { resolveTenantCookieRaw } from "@/lib/tenancy/tenant-cookie-resolve";
 
-const FORCED_HTML_GUARD = "x-powerfit-forced-html";
-
 const PUBLIC_PATHS = new Set([
   "/login",
   "/site",
@@ -100,62 +98,6 @@ function redirectWithCleanQuery(request: NextRequest, pathname: string) {
   return NextResponse.redirect(url);
 }
 
-/**
- * Requisições Flight/RSC do App Router (Next.js) — precisam manter `_rsc` e headers.
- * Ver `next/dist/client/components/app-router-headers.js` (RSC_HEADER, FLIGHT_HEADERS).
- */
-function isNextFlightRequest(request: NextRequest): boolean {
-  const h = request.headers;
-  const rsc = h.get("rsc");
-  if (rsc === "1" || rsc === "true") return true;
-  if (h.has("next-router-state-tree")) return true;
-  if (h.get("next-router-prefetch")) return true;
-  if (h.get("next-router-segment-prefetch")) return true;
-  if (h.get("next-hmr-refresh")) return true;
-  const accept = h.get("Accept") ?? "";
-  if (accept.includes("text/x-component")) return true;
-  return false;
-}
-
-/**
- * Força o App Router a tratar como navegação documento (HTML), não payload Flight * (`:HL[...]` na tela). Usado em rewrite interno.
- */
-function forceDocumentHtmlRequest(request: NextRequest): Headers {
-  const h = new Headers(request.headers);
-  h.set(
-    "Accept",
-    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-  );
-  for (const key of [
-    "rsc",
-    "RSC",
-    "Next-Router-Prefetch",
-    "Next-Router-Segment-Prefetch",
-    "Next-Router-State-Tree",
-    "Next-HMR-Refresh",
-  ]) {
-    h.delete(key);
-  }
-  return h;
-}
-
-/** Rotas que devem devolver documento HTML completo (não stream RSC “cru”). */
-function pathNeedsForcedHtmlRewrite(pathname: string): boolean {
-  return (
-    pathname === "/" ||
-    pathname.startsWith("/login") ||
-    /** Hub: SSR puro; rewrite aqui deixava navegação “pendurada” em algumas CDNs. */
-    pathname.startsWith("/ultra-admin") ||
-    pathname.startsWith("/admin") ||
-    pathname.startsWith("/professor") ||
-    pathname.startsWith("/aluno") ||
-    pathname.startsWith("/a/") ||
-    pathname.startsWith("/site") ||
-    pathname.startsWith("/mensalidade") ||
-    pathname.startsWith("/manutencao-unidade")
-  );
-}
-
 export async function proxy(request: NextRequest) {
   try {
     return await runProxy(request);
@@ -176,26 +118,7 @@ async function runProxy(request: NextRequest) {
   if (pathname === "/manutencao") return NextResponse.next();
   if (pathname === "/api/health") return NextResponse.next();
 
-  /**
-   * Navegação “documento” que chega sem headers Flight corretos (CDN, aba nova,
-   * prefetch) → Next pode responder só com stream RSC. Reescreve com Accept HTML
-   * e sem headers de router RSC para forçar página completa.
-   */
-  if (
-    request.method === "GET" &&
-    !pathname.startsWith("/api/") &&
-    !isNextFlightRequest(request) &&
-    pathNeedsForcedHtmlRewrite(pathname) &&
-    !request.headers.get(FORCED_HTML_GUARD)
-  ) {
-    const clean = request.nextUrl.clone();
-    stripDocumentShouldNotCarryRscParams(clean);
-    const headers = forceDocumentHtmlRequest(request);
-    headers.set(FORCED_HTML_GUARD, "1");
-    return NextResponse.rewrite(clean, {
-      request: { headers },
-    });
-  }
+  // Evita rewrites de documento no proxy (fonte de timeout/503 em algumas CDNs).
 
   const p = await loadPlatformOnce();
   const tenantTrimmed = tenantCookieRaw?.trim() || null;
