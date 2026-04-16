@@ -112,43 +112,9 @@ function isNextFlightRequest(request: NextRequest): boolean {
   if (h.get("next-router-prefetch")) return true;
   if (h.get("next-router-segment-prefetch")) return true;
   if (h.get("next-hmr-refresh")) return true;
-  if (h.has("next-url")) return true;
-  if (h.get("next-instant-navigation-testing-prefetch")) return true;
   const accept = h.get("Accept") ?? "";
   if (accept.includes("text/x-component")) return true;
-  if (request.nextUrl.searchParams.has("_rsc")) return true;
   return false;
-}
-
-/**
- * `fetch()` do App Router (transição client-side) — não forçar HTML; senão o router quebra
- * quando a CDN remove headers RSC mas mantém Sec-Fetch típico de XHR.
- */
-function isLikelyClientRscFetch(request: NextRequest): boolean {
-  const mode = request.headers.get("Sec-Fetch-Mode");
-  if (mode === "navigate") return false;
-  if (mode === "cors" || mode === "same-origin") return true;
-  const dest = request.headers.get("Sec-Fetch-Dest");
-  if (dest === "empty") return true;
-  return false;
-}
-
-/**
- * Carregamento de página real (aba / barra de endereço). Deve receber HTML completo;
- * sem isto, headers RSC vindos de CDN/prefetch fazem o proxy pular o rewrite e o browser
- * exibe `:HL[...]` (payload Flight cru) em rotas como `/ultra-admin`.
- */
-function isBrowserDocumentNavigation(request: NextRequest): boolean {
-  const mode = request.headers.get("Sec-Fetch-Mode");
-  if (mode === "navigate") return true;
-  const dest = request.headers.get("Sec-Fetch-Dest");
-  if (dest === "document") return true;
-  return false;
-}
-
-function acceptsHtmlDocument(request: NextRequest): boolean {
-  const accept = request.headers.get("Accept") ?? "";
-  return accept.includes("text/html") || accept.includes("application/xhtml+xml");
 }
 
 /**
@@ -171,24 +137,6 @@ function forceDocumentHtmlRequest(request: NextRequest): Headers {
     h.delete(key);
   }
   return h;
-}
-
-function applyDocumentCacheSafetyHeaders(response: NextResponse) {
-  response.headers.set(
-    "Cache-Control",
-    "private, no-cache, no-store, max-age=0, must-revalidate",
-  );
-  response.headers.set(
-    "Vary",
-    [
-      "Accept",
-      "RSC",
-      "Next-Router-State-Tree",
-      "Next-Router-Prefetch",
-      "Next-Router-Segment-Prefetch",
-    ].join(", "),
-  );
-  return response;
 }
 
 /** Rotas que devem devolver documento HTML completo (não stream RSC “cru”). */
@@ -229,54 +177,24 @@ async function runProxy(request: NextRequest) {
   if (pathname === "/api/health") return NextResponse.next();
 
   /**
-   * Navegação “documento” que chega com headers de Flight (CDN) → Next pode responder
-   * só com stream RSC (`:HL[...]`). Reescreve para HTML. Não aplicar em `fetch` do
-   * client router (`isLikelyClientRscFetch`), senão o app inteiro para de navegar.
+   * Navegação “documento” que chega sem headers Flight corretos (CDN, aba nova,
+   * prefetch) → Next pode responder só com stream RSC. Reescreve com Accept HTML
+   * e sem headers de router RSC para forçar página completa.
    */
-  /**
-   * Se chegar como "Flight" mas sem `_rsc` na URL, tratamos como navegação de documento:
-   * isso acontece quando algum proxy/CDN preserva headers internos do Next indevidamente.
-   */
-  const hasRscQueryParam = request.nextUrl.searchParams.has("_rsc");
-  const looksLikeHtmlDocument = acceptsHtmlDocument(request);
-  const shouldForceFullDocumentHtml =
-    pathNeedsForcedHtmlRewrite(pathname) &&
-    !isLikelyClientRscFetch(request) &&
-    (isBrowserDocumentNavigation(request) ||
-      looksLikeHtmlDocument ||
-      !isNextFlightRequest(request) ||
-      !hasRscQueryParam);
-
   if (
     request.method === "GET" &&
     !pathname.startsWith("/api/") &&
-    shouldForceFullDocumentHtml &&
+    !isNextFlightRequest(request) &&
+    pathNeedsForcedHtmlRewrite(pathname) &&
     !request.headers.get(FORCED_HTML_GUARD)
   ) {
-    /**
-     * Em algumas bordas/CDNs, rewrite interno pode preservar contexto Flight e ainda
-     * devolver stream RSC para navegação de documento. Redirect força nova requisição
-     * "limpa" do navegador para receber HTML completo.
-     */
     const clean = request.nextUrl.clone();
-    const removedInternalRscParams = stripDocumentShouldNotCarryRscParams(clean);
-    if (clean.toString() !== request.nextUrl.toString()) {
-      return applyDocumentCacheSafetyHeaders(NextResponse.redirect(clean));
-    }
-    /**
-     * Se o request parece documento HTML, mas ainda traz assinatura Flight via headers,
-     * redireciona para forçar um novo ciclo no browser/CDN com contexto limpo.
-     */
-    if (looksLikeHtmlDocument && (isNextFlightRequest(request) || removedInternalRscParams)) {
-      return applyDocumentCacheSafetyHeaders(NextResponse.redirect(clean));
-    }
+    stripDocumentShouldNotCarryRscParams(clean);
     const headers = forceDocumentHtmlRequest(request);
     headers.set(FORCED_HTML_GUARD, "1");
-    return applyDocumentCacheSafetyHeaders(
-      NextResponse.rewrite(clean, {
-        request: { headers },
-      }),
-    );
+    return NextResponse.rewrite(clean, {
+      request: { headers },
+    });
   }
 
   const p = await loadPlatformOnce();
@@ -457,6 +375,6 @@ async function runProxy(request: NextRequest) {
  */
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon\\.ico|favicon\\.svg|robots\\.txt|sitemap\\.xml|manifest\\.webmanifest|api/public/|api/auth/|api/site/).*)",
+    "/((?!_next/static|_next/image|favicon\\.ico|favicon\\.svg|api/public/|api/auth/|api/site/).*)",
   ],
 };
