@@ -228,8 +228,16 @@ async function runProxy(request: NextRequest) {
     shouldForceFullDocumentHtml &&
     !request.headers.get(FORCED_HTML_GUARD)
   ) {
+    /**
+     * Em algumas bordas/CDNs, rewrite interno pode preservar contexto Flight e ainda
+     * devolver stream RSC para navegação de documento. Redirect força nova requisição
+     * "limpa" do navegador para receber HTML completo.
+     */
     const clean = request.nextUrl.clone();
     stripDocumentShouldNotCarryRscParams(clean);
+    if (clean.toString() !== request.nextUrl.toString()) {
+      return NextResponse.redirect(clean);
+    }
     const headers = forceDocumentHtmlRequest(request);
     headers.set(FORCED_HTML_GUARD, "1");
     return NextResponse.rewrite(clean, {
