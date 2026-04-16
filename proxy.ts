@@ -210,17 +210,10 @@ async function runProxy(request: NextRequest) {
    * só com stream RSC (`:HL[...]`). Reescreve para HTML. Não aplicar em `fetch` do
    * client router (`isLikelyClientRscFetch`), senão o app inteiro para de navegar.
    */
-  /**
-   * Se chegar como "Flight" mas sem `_rsc` na URL, tratamos como navegação de documento:
-   * isso acontece quando algum proxy/CDN preserva headers internos do Next indevidamente.
-   */
-  const hasRscQueryParam = request.nextUrl.searchParams.has("_rsc");
   const shouldForceFullDocumentHtml =
     pathNeedsForcedHtmlRewrite(pathname) &&
     !isLikelyClientRscFetch(request) &&
-    (isBrowserDocumentNavigation(request) ||
-      !isNextFlightRequest(request) ||
-      !hasRscQueryParam);
+    (isBrowserDocumentNavigation(request) || !isNextFlightRequest(request));
 
   if (
     request.method === "GET" &&
