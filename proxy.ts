@@ -146,6 +146,11 @@ function isBrowserDocumentNavigation(request: NextRequest): boolean {
   return false;
 }
 
+function acceptsHtmlDocument(request: NextRequest): boolean {
+  const accept = request.headers.get("Accept") ?? "";
+  return accept.includes("text/html") || accept.includes("application/xhtml+xml");
+}
+
 /**
  * Força o App Router a tratar como navegação documento (HTML), não payload Flight * (`:HL[...]` na tela). Usado em rewrite interno.
  */
@@ -166,6 +171,24 @@ function forceDocumentHtmlRequest(request: NextRequest): Headers {
     h.delete(key);
   }
   return h;
+}
+
+function applyDocumentCacheSafetyHeaders(response: NextResponse) {
+  response.headers.set(
+    "Cache-Control",
+    "private, no-cache, no-store, max-age=0, must-revalidate",
+  );
+  response.headers.set(
+    "Vary",
+    [
+      "Accept",
+      "RSC",
+      "Next-Router-State-Tree",
+      "Next-Router-Prefetch",
+      "Next-Router-Segment-Prefetch",
+    ].join(", "),
+  );
+  return response;
 }
 
 /** Rotas que devem devolver documento HTML completo (não stream RSC “cru”). */
@@ -215,10 +238,12 @@ async function runProxy(request: NextRequest) {
    * isso acontece quando algum proxy/CDN preserva headers internos do Next indevidamente.
    */
   const hasRscQueryParam = request.nextUrl.searchParams.has("_rsc");
+  const looksLikeHtmlDocument = acceptsHtmlDocument(request);
   const shouldForceFullDocumentHtml =
     pathNeedsForcedHtmlRewrite(pathname) &&
     !isLikelyClientRscFetch(request) &&
     (isBrowserDocumentNavigation(request) ||
+      looksLikeHtmlDocument ||
       !isNextFlightRequest(request) ||
       !hasRscQueryParam);
 
@@ -234,15 +259,24 @@ async function runProxy(request: NextRequest) {
      * "limpa" do navegador para receber HTML completo.
      */
     const clean = request.nextUrl.clone();
-    stripDocumentShouldNotCarryRscParams(clean);
+    const removedInternalRscParams = stripDocumentShouldNotCarryRscParams(clean);
     if (clean.toString() !== request.nextUrl.toString()) {
-      return NextResponse.redirect(clean);
+      return applyDocumentCacheSafetyHeaders(NextResponse.redirect(clean));
+    }
+    /**
+     * Se o request parece documento HTML, mas ainda traz assinatura Flight via headers,
+     * redireciona para forçar um novo ciclo no browser/CDN com contexto limpo.
+     */
+    if (looksLikeHtmlDocument && (isNextFlightRequest(request) || removedInternalRscParams)) {
+      return applyDocumentCacheSafetyHeaders(NextResponse.redirect(clean));
     }
     const headers = forceDocumentHtmlRequest(request);
     headers.set(FORCED_HTML_GUARD, "1");
-    return NextResponse.rewrite(clean, {
-      request: { headers },
-    });
+    return applyDocumentCacheSafetyHeaders(
+      NextResponse.rewrite(clean, {
+        request: { headers },
+      }),
+    );
   }
 
   const p = await loadPlatformOnce();
