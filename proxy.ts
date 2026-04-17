@@ -177,18 +177,6 @@ function forceDocumentHtmlRequest(request: NextRequest): Headers {
   return h;
 }
 
-function applyNoStoreDocumentHeaders(response: NextResponse) {
-  response.headers.set(
-    "Cache-Control",
-    "private, no-cache, no-store, max-age=0, must-revalidate",
-  );
-  response.headers.set(
-    "Vary",
-    "Accept, RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch",
-  );
-  return response;
-}
-
 /** Rotas que devem devolver documento HTML completo (não stream RSC “cru”). */
 function pathNeedsForcedHtmlRewrite(pathname: string): boolean {
   return (
@@ -247,15 +235,13 @@ async function runProxy(request: NextRequest) {
     const clean = request.nextUrl.clone();
     const changed = stripDocumentShouldNotCarryRscParams(clean);
     if (changed) {
-      return applyNoStoreDocumentHeaders(NextResponse.redirect(clean));
+      return NextResponse.redirect(clean);
     }
     const headers = forceDocumentHtmlRequest(request);
     headers.set(FORCED_HTML_GUARD, "1");
-    return applyNoStoreDocumentHeaders(
-      NextResponse.rewrite(clean, {
-        request: { headers },
-      }),
-    );
+    return NextResponse.rewrite(clean, {
+      request: { headers },
+    });
   }
 
   const p = await loadPlatformOnce();
