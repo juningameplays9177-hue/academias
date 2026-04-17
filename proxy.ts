@@ -147,6 +147,15 @@ function isBrowserDocumentNavigation(request: NextRequest): boolean {
 }
 
 /**
+ * Em alguns proxies/CDNs os headers `Sec-Fetch-*` chegam ausentes, mas o navegador
+ * ainda envia `Accept: text/html` para navegação de documento.
+ */
+function acceptsHtmlDocument(request: NextRequest): boolean {
+  const accept = request.headers.get("Accept") ?? "";
+  return accept.includes("text/html") || accept.includes("application/xhtml+xml");
+}
+
+/**
  * Força o App Router a tratar como navegação documento (HTML), não payload Flight * (`:HL[...]` na tela). Usado em rewrite interno.
  */
 function forceDocumentHtmlRequest(request: NextRequest): Headers {
@@ -166,6 +175,18 @@ function forceDocumentHtmlRequest(request: NextRequest): Headers {
     h.delete(key);
   }
   return h;
+}
+
+function applyNoStoreDocumentHeaders(response: NextResponse) {
+  response.headers.set(
+    "Cache-Control",
+    "private, no-cache, no-store, max-age=0, must-revalidate",
+  );
+  response.headers.set(
+    "Vary",
+    "Accept, RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch",
+  );
+  return response;
 }
 
 /** Rotas que devem devolver documento HTML completo (não stream RSC “cru”). */
@@ -213,7 +234,9 @@ async function runProxy(request: NextRequest) {
   const shouldForceFullDocumentHtml =
     pathNeedsForcedHtmlRewrite(pathname) &&
     !isLikelyClientRscFetch(request) &&
-    (isBrowserDocumentNavigation(request) || !isNextFlightRequest(request));
+    (isBrowserDocumentNavigation(request) ||
+      acceptsHtmlDocument(request) ||
+      !isNextFlightRequest(request));
 
   if (
     request.method === "GET" &&
@@ -222,12 +245,17 @@ async function runProxy(request: NextRequest) {
     !request.headers.get(FORCED_HTML_GUARD)
   ) {
     const clean = request.nextUrl.clone();
-    stripDocumentShouldNotCarryRscParams(clean);
+    const changed = stripDocumentShouldNotCarryRscParams(clean);
+    if (changed) {
+      return applyNoStoreDocumentHeaders(NextResponse.redirect(clean));
+    }
     const headers = forceDocumentHtmlRequest(request);
     headers.set(FORCED_HTML_GUARD, "1");
-    return NextResponse.rewrite(clean, {
-      request: { headers },
-    });
+    return applyNoStoreDocumentHeaders(
+      NextResponse.rewrite(clean, {
+        request: { headers },
+      }),
+    );
   }
 
   const p = await loadPlatformOnce();
